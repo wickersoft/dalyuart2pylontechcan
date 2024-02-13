@@ -86,10 +86,10 @@ bool Daly_BMS_UART::getPackMeasurements() // 0x90
     }
 
     // Pull the relevant values out of the buffer
-    get.packVoltage = ((float)((this->my_rxBuffer[4] << 8) | this->my_rxBuffer[5]) / 10.0f);
+    get.packVoltage = (this->my_rxBuffer[4] << 8) | this->my_rxBuffer[5];
     // The current measurement is given with a 30000 unit offset (see /docs/)
-    get.packCurrent = ((float)(((this->my_rxBuffer[8] << 8) | this->my_rxBuffer[9]) - 30000) / 10.0f);
-    get.packSOC = ((float)((this->my_rxBuffer[10] << 8) | this->my_rxBuffer[11]) / 10.0f);
+    get.packCurrent = ((this->my_rxBuffer[8] << 8) | this->my_rxBuffer[9]) - 30000;
+    get.packSOC = (this->my_rxBuffer[10] << 8) | this->my_rxBuffer[11];
 #ifdef DEBUG_SERIAL
     DEBUG_SERIAL.print("<DALY-BMS DEBUG> ");
     DEBUG_SERIAL.print(get.packVoltage);
@@ -115,9 +115,9 @@ bool Daly_BMS_UART::getMinMaxCellVoltage() // 0x91
         return false;
     }
 
-    get.maxCellmV = (float)((this->my_rxBuffer[4] << 8) | this->my_rxBuffer[5]);
+    get.maxCellmV = (this->my_rxBuffer[4] << 8) | this->my_rxBuffer[5];
     get.maxCellVNum = this->my_rxBuffer[6];
-    get.minCellmV = (float)((this->my_rxBuffer[7] << 8) | this->my_rxBuffer[8]);
+    get.minCellmV = (this->my_rxBuffer[7] << 8) | this->my_rxBuffer[8];
     get.minCellVNum = this->my_rxBuffer[9];
     get.cellDiff = (get.maxCellmV - get.minCellmV);
 

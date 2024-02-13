@@ -35,21 +35,21 @@ public:
     struct
     {
         // data from 0x90
-        float packVoltage; // Total pack voltage (0.1 V)
-        float packCurrent; // Current in (+) or out (-) of pack (0.1 A)
-        float packSOC;     // State Of Charge
+        uint16_t packVoltage; // Total pack voltage (0.1 V)
+        uint16_t packCurrent; // Current in (+) or out (-) of pack (0.1 A)
+        uint16_t packSOC;     // State Of Charge
 
         // data from 0x91
-        float maxCellmV; // Maximum cell voltage (mV)
+        uint16_t maxCellmV; // Maximum cell voltage (mV)
         int maxCellVNum; // Number of cell with highest voltage
-        float minCellmV; // Minimum cell voltage (mV)
+        uint16_t minCellmV; // Minimum cell voltage (mV)
         int minCellVNum; // Number of cell with lowest voltage
-        float cellDiff;  // Difference between min and max cell voltages
+        uint16_t cellDiff;  // Difference between min and max cell voltages
 
         // data from 0x92
         int tempMax;       // Maximum temperature sensor reading (°C)
         int tempMin;       // Minimum temperature sensor reading (°C)
-        float tempAverage; // Average of temp sensors
+        uint16_t tempAverage; // Average of temp sensors
 
         // data from 0x93
         String chargeDischargeStatus; // charge/discharge status (0 stationary, 1 charge, 2 discharge)
@@ -67,7 +67,7 @@ public:
         int bmsCycles;        // charge / discharge cycles
 
         // data from 0x95
-        float cellVmV[48]; // Store Cell Voltages (mV)
+        uint16_t cellVmV[48]; // Store Cell Voltages (mV)
 
         // data from 0x96
         int cellTemperature[16]; // array of cell Temperature sensors
