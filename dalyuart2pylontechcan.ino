@@ -1,9 +1,11 @@
 #include <Arduino.h>
 #include "daly-bms-uart.h" // This is where the library gets pulled in
+#include <SoftwareSerial.h>
 
 SoftwareSerial sSerial(3, 5);
+
 #define BMS_SERIAL sSerial // Set the serial port for communication with the Daly BMS
-                           // Set the Serial Debug port
+// Set the Serial Debug port
 
 // To print debug info from the inner workings of the library, see the README
 
@@ -12,10 +14,10 @@ Daly_BMS_UART bms(BMS_SERIAL);
 
 void setup()
 {
-  // Used for debug printing
-  Serial.begin(9600); // Serial interface for the Arduino Serial Monitor
-
   bms.Init(); // This call sets up the driver
+
+  // Used for debug printing. We initialize it after the bms object to override the baudrate
+  Serial.begin(115200); // Serial interface for the Arduino Serial Monitor
 }
 
 void loop()
