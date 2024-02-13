@@ -34,21 +34,14 @@ void loop()
   // SOC & Voltage) you could use other public APIs, like getPackMeasurements(), which only query
   // specific values from the BMS instead of all.
 
-  uint32_t ms = millis();
-  bms.update();
-
-
   // And print them out!
-  Serial.print("BMS update in ");
-  Serial.print(millis() - ms);
-  Serial.println("ms");
   Serial.println(F("Basic BMS Data:              "));
   Serial.print(bms.get.packVoltage);
-  Serial.print("V ");
+  Serial.print("dV ");
   Serial.print(bms.get.packCurrent);
-  Serial.print("A ");
+  Serial.print("dA ");
   Serial.print(bms.get.packSOC);
-  Serial.println("\% ");
+  Serial.println("% SOC");
   Serial.print(F("Package Temperature (C):     "));
   Serial.println(bms.get.tempAverage);
   Serial.print(F("Highest Cell Voltage:        #"));
