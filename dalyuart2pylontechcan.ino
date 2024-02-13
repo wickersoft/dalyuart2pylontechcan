@@ -1,16 +1,14 @@
-#include <Arduino.h>
-#include "daly-bms-uart.h" // This is where the library gets pulled in
 #include <SoftwareSerial.h>
-
-SoftwareSerial sSerial(3, 5);
+#include <SPI.h>
+#include <mcp2515.h>
+#include "daly-bms-uart.h" // This is where the library gets pulled in
+#include "pylontech-can.h"
 
 #define BMS_SERIAL sSerial // Set the serial port for communication with the Daly BMS
-// Set the Serial Debug port
 
-// To print debug info from the inner workings of the library, see the README
-
-// Construct the BMS driver and passing in the Serial interface (which pins to use)
-Daly_BMS_UART bms(BMS_SERIAL);
+SoftwareSerial sSerial(3, 5);
+MCP2515 mcp2515(8);
+Daly_BMS_UART bms(BMS_SERIAL); // Construct the BMS driver and passing in the Serial interface (which pins to use)
 
 void setup()
 {
