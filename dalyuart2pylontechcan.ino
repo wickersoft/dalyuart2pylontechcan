@@ -35,10 +35,15 @@ void loop()
   // This .update() call populates the entire get struct. If you only need certain values (like
   // SOC & Voltage) you could use other public APIs, like getPackMeasurements(), which only query
   // specific values from the BMS instead of all.
+
+  uint32_t ms = millis();
   bms.update();
 
 
   // And print them out!
+  Serial.print("BMS update in ");
+  Serial.print(millis() - ms);
+  Serial.println("ms");
   Serial.println(F("Basic BMS Data:              "));
   Serial.print(bms.get.packVoltage);
   Serial.print("V ");
