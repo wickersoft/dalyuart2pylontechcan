@@ -13,22 +13,43 @@ Daly_BMS_UART bms(BMS_SERIAL); // Construct the BMS driver and passing in the Se
 void setup()
 {
   bms.Init(); // This call sets up the driver
+  can_data_init();
 
   // Used for debug printing. We initialize it after the bms object to override the baudrate
   Serial.begin(115200); // Serial interface for the Arduino Serial Monitor
+
+  // Print a message and wait for input from the user
+  Serial.println("------- CAN Read ----------");
+  Serial.println("ID  DLC   DATA");
+  Serial.println("(Press any key and hit enter to query data from the BMS...)");
+  bms.update();
+  can_data_update(&bms);
 }
 
 void loop()
 {
-  // Print a message and wait for input from the user
-  Serial.println("Press any key and hit enter to query data from the BMS...");
-  while (Serial.available() == 0)
-  {
+  if (Serial.available() != 0) {
+    //bms.update();
+    print_battery_state();
   }
+
+  // The inverter only sends keepalive messages with no data. Configured for Pylontech US5000, the inverter sends can messages 0x305, 0x306 and 0x307. 
+  // We simply respond after the last one.
+  if (is_can_frame_received()) {
+    if (canMsg.can_id == 0x307) {
+      can_data_transmit(); // I have seen CAN messages rejected if sent spontaneously, so let's play it safe and transmit as fast as possible, at the cost of only knowing a 1-second old battery state.
+      bms.update();
+      can_data_update(&bms);
+    }
+  }
+}
+
+void print_battery_state() {
   // TODO: Could these both be reduced to a single flush()?
   // Right now there's a bug where if you send more than one character it will read multiple times
-  Serial.read(); // Discard the character sent
-  Serial.read(); // Discard the new line
+  while(Serial.available()) {
+    Serial.read(); // Discard the character sent
+  }
 
   // This .update() call populates the entire get struct. If you only need certain values (like
   // SOC & Voltage) you could use other public APIs, like getPackMeasurements(), which only query
