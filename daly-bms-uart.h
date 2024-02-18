@@ -49,7 +49,7 @@ public:
         // data from 0x92
         int tempMax;       // Maximum temperature sensor reading (°C)
         int tempMin;       // Minimum temperature sensor reading (°C)
-        uint16_t tempAverage; // Average of temp sensors
+        int16_t tempAverage; // Average of temp sensors
 
         // data from 0x93
         String chargeDischargeStatus; // charge/discharge status (0 stationary, 1 charge, 2 discharge)
