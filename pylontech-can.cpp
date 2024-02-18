@@ -42,7 +42,7 @@ struct {
   uint16_t charge_limit_deciamps;
   uint16_t discharge_limit_deciamps;
   uint8_t padding[2];
-} *battery_voltage = (typeof(battery_voltage)) canMsg351.data;
+} *limits = (typeof(limits)) canMsg351.data;
 
 struct {
   uint16_t soc_percent;
@@ -52,10 +52,10 @@ struct {
 
 struct {
   uint16_t pack_centivolts;
-  uint16_t pack_current_2cpl;
+  uint16_t pack_deciamps;
   uint16_t pack_temp_dc;
   uint8_t padding[2];
-} *simple_measurements = (typeof(simple_measurements)) canMsg356.data;
+} *measurements = (typeof(measurements)) canMsg356.data;
 
 struct {
   uint8_t flags;
@@ -63,7 +63,7 @@ struct {
 
 struct {
   char magic_string[8];
-} *manufacturer_name = (typeof(manufacturer_name)) canMsg35E.data;
+} *manufacturer = (typeof(manufacturer)) canMsg35E.data;
 
 
 #define M359_B0_T1_DISCH_OVERCURRENT (1 << 7)
@@ -245,7 +245,43 @@ void can_data_update(Daly_BMS_UART *bms) {
   status_flags->magic_string[1] = 'N';
   status_flags->magic_string[2] = 0;
   
+  
+  // MESSAGE 351 LIMITS
+  limits->pack_decivolts = 560;
+  limits->charge_limit_deciamps = 100;
+  limits->discharge_limit_deciamps = 100;
+  limits->padding[0] = 0;
+  limits->padding[1] = 0;
+
+
+  // MESSAGE 355 BATTERY HEALTH
+  battery_health->soc_percent = bms->get.packSOC;
+  battery_health->soh_percent = 100; // This battery never gets old
+  battery_health->padding[0] = 0;
+  battery_health->padding[1] = 0;
+  battery_health->padding[2] = 0;
+  battery_health->padding[3] = 0;
+
+
+  // MESSAGE 356 MEASUREMENTS
+  measurements->pack_centivolts = 10 * bms->get.packVoltage;
+  measurements->pack_deciamps = bms->get.packCurrent;
+  measurements->pack_temp_dc = bms->get.tempAverage;
+  measurements->padding[0] = 0;
+  measurements->padding[1] = 0;
+
+
   i = 0;
+  // MESSAGE 35C REQUESTS
+  if(bms->get.chargeFetState) {
+    i |= M35C_B0_T5_CHARGE_ENABLE;
+  }
+  if(bms->get.disChargeFetState) {
+    i |= M35C_B0_T5_DISCH_ENABLE;
+  }
+  // We don't request force charges
+  requests->flags = i; 
+}
 
 void can_data_transmit() {
   mcp2515.sendMessage(&canMsg359);
