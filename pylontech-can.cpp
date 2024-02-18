@@ -29,13 +29,13 @@ struct can_frame canMsg35E {
 };
 
 struct {
-  uint8_t protection_flags1;
-  uint8_t protection_flags2;
-  uint8_t alarm_flags1;
-  uint8_t alarm_flags2;
-  uint8_t model_number;
+  uint8_t protection1;
+  uint8_t protection2;
+  uint8_t alarm1;
+  uint8_t alarm2;
+  uint8_t num_modules;
   char magic_string[3];
-} *error_flags = (typeof(error_flags)) canMsg359.data;
+} *status_flags = (typeof(status_flags)) canMsg359.data;
 
 struct {
   uint16_t pack_decivolts;
@@ -170,11 +170,82 @@ void can_data_init() {
 }
 
 void can_data_update(Daly_BMS_UART *bms) {
+  uint8_t i = 0;
+
+  // MESSAGE 359 STATUS FLAGS
+  // Byte 0 Protection/Critical 1
+  if(bms->alarm.levelTwoDischargeCurrentTooHigh) {
+    i |= M359_B0_T1_DISCH_OVERCURRENT;
+  }
+  if(bms->alarm.levelTwoChargeTempTooLow
+  || bms->alarm.levelTwoDischargeTempTooLow ) {
+    i |= M359_B0_T1_CELL_UNDERTEMP;
+  }
+  if(bms->alarm.levelTwoChargeTempTooHigh
+  || bms->alarm.levelTwoDischargeTempTooHigh ) {
+    i |= M359_B0_T1_CELL_OVERTEMP;
+  }
+  if(bms->alarm.levelTwoCellVoltageTooLow
+  || bms->alarm.levelTwoPackVoltageTooLow ) {
+    i |= M359_B0_T1_CELL_UNDERVOLT;
+  }
+  if(bms->alarm.levelTwoCellVoltageTooHigh
+  || bms->alarm.levelTwoPackVoltageTooHigh ) {
+    i |= M359_B0_T1_CELL_OVERVOLT;
+  }
+  status_flags->protection1 = i;
+  i = 0;
+
+  // Byte 1 Protection/Critical 2
+  if(bms->alarm.levelTwoChargeCurrentTooHigh) {
+    i |= M359_B1_T2_CHARGE_OVERCURRENT;
+  }
+//  if() {  // No condition currently known that should set this bit
+//    i |= M359_B1_T2_SYSTEM_ERROR;
+//  }
+  status_flags->protection2 = i;
+  i = 0;
 
 
+  // Byte 2 Alarm/Warning 1 
+  if(bms->alarm.levelOneDischargeCurrentTooHigh) {
+    i |= M359_B2_T3_DISCH_HIGH_CURRENT;
+  }
+  if(bms->alarm.levelOneChargeTempTooLow
+  || bms->alarm.levelOneDischargeTempTooLow ) {
+    i |= M359_B2_T3_CELL_LOW_TEMP;
+  }
+  if(bms->alarm.levelOneChargeTempTooHigh
+  || bms->alarm.levelOneDischargeTempTooHigh ) {
+    i |= M359_B2_T3_CELL_HIGH_TEMP;
+  }
+  if(bms->alarm.levelOneCellVoltageTooLow
+  || bms->alarm.levelOnePackVoltageTooLow ) {
+    i |= M359_B2_T3_CELL_LOW_VOLT;
+  }
+  if(bms->alarm.levelOneCellVoltageTooHigh
+  || bms->alarm.levelOnePackVoltageTooHigh ) {
+    i |= M359_B2_T3_CELL_HIGH_VOLT;
+  }
+  status_flags->alarm1 = i;  
+  i = 0;
 
 
-}
+  // Byte 3 Alarm/Warning 2
+  if(bms->alarm.levelOneChargeCurrentTooHigh) {
+    i |= M359_B3_T4_CHARGE_HIGH_CURRENT;
+  }
+//  if() {  // No condition currently known that should set this bit
+//    i |= M359_B3_T4_INTERNAL_COMM_ERROR;
+//  }
+  status_flags->protection2 = i;
+  
+  status_flags->num_modules = 1;
+  status_flags->magic_string[0] = 'P';
+  status_flags->magic_string[1] = 'N';
+  status_flags->magic_string[2] = 0;
+  
+  i = 0;
 
 void can_data_transmit() {
   mcp2515.sendMessage(&canMsg359);
