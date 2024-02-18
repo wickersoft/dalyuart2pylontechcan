@@ -3,12 +3,92 @@
 #include "pylontech-can.h"
 
 struct can_frame canMsg;
-struct can_frame canMsg359;
-struct can_frame canMsg351;
-struct can_frame canMsg355;
-struct can_frame canMsg356;
-struct can_frame canMsg35C;
-struct can_frame canMsg35E;
+struct can_frame canMsg359 {
+  .can_id = 0x359,
+  .can_dlc = 8,
+};
+struct can_frame canMsg351 {
+  .can_id = 0x351,
+  .can_dlc = 8,
+};
+struct can_frame canMsg355 {
+  .can_id = 0x355,
+  .can_dlc = 8,
+};
+struct can_frame canMsg356 {
+  .can_id = 0x356,
+  .can_dlc = 8,
+};
+struct can_frame canMsg35C {
+  .can_id = 0x35C,
+  .can_dlc = 1,
+};
+struct can_frame canMsg35E {
+  .can_id = 0x35E,
+  .can_dlc = 8,
+};
+
+struct {
+  uint8_t protection_flags1;
+  uint8_t protection_flags2;
+  uint8_t alarm_flags1;
+  uint8_t alarm_flags2;
+  uint8_t model_number;
+  char magic_string[3];
+} *error_flags = (typeof(error_flags)) canMsg359.data;
+
+struct {
+  uint16_t pack_decivolts;
+  uint16_t charge_limit_deciamps;
+  uint16_t discharge_limit_deciamps;
+  uint8_t padding[2];
+} *battery_voltage = (typeof(battery_voltage)) canMsg351.data;
+
+struct {
+  uint16_t soc_percent;
+  uint16_t soh_percent;
+  uint8_t padding[4];
+} *battery_health = (typeof(battery_health)) canMsg355.data;
+
+struct {
+  uint16_t pack_centivolts;
+  uint16_t pack_current_2cpl;
+  uint16_t pack_temp_dc;
+  uint8_t padding[2];
+} *simple_measurements = (typeof(simple_measurements)) canMsg356.data;
+
+struct {
+  uint8_t flags;
+} *requests = (typeof(requests)) canMsg35C.data;
+
+struct {
+  char magic_string[8];
+} *manufacturer_name = (typeof(manufacturer_name)) canMsg35E.data;
+
+
+#define M359_B0_T1_DISCH_OVERCURRENT (1 << 7)
+#define M359_B0_T1_CELL_UNDERTEMP (1 << 4)
+#define M359_B0_T1_CELL_OVERTEMP (1 << 3)
+#define M359_B0_T1_CELL_UNDERVOLT (1 << 2)
+#define M359_B0_T1_CELL_OVERVOLT (1 << 1)
+
+#define M359_B1_T2_SYSTEM_ERROR (1 << 3)
+#define M359_B1_T2_CHARGE_OVERCURRENT (1 << 0)
+
+#define M359_B2_T3_DISCH_HIGH_CURRENT (1 << 7)
+#define M359_B2_T3_CELL_LOW_TEMP (1 << 4)
+#define M359_B2_T3_CELL_HIGH_TEMP (1 << 3)
+#define M359_B2_T3_CELL_LOW_VOLT (1 << 2)
+#define M359_B2_T3_CELL_HIGH_VOLT (1 << 1)
+
+#define M359_B3_T4_INTERNAL_COMM_ERROR (1 << 3)
+#define M359_B3_T4_CHARGE_HIGH_CURRENT (1 << 0)
+
+#define M35C_B0_T5_CHARGE_ENABLE (1 << 7)
+#define M35C_B0_T5_DISCH_ENABLE (1 << 6)
+#define M35C_B0_T5_REQUEST_FORCE_CHARGE_1 (1 << 5)
+#define M35C_B0_T5_REQUEST_FORCE_CHARGE_2 (1 << 4)
+#define M35C_B0_T5_REQUEST_FULL_CHARGE (1 << 3)
 
 
 uint8_t is_can_frame_received() {
@@ -30,8 +110,6 @@ void can_data_print_request() {
 }
 
 void can_data_init() {
-  canMsg359.can_id  = 0x359;
-  canMsg359.can_dlc = 8;
   canMsg359.data[0] = 0;
   canMsg359.data[1] = 0;
   canMsg359.data[2] = 0;
@@ -41,8 +119,6 @@ void can_data_init() {
   canMsg359.data[6] = 'N';
   canMsg359.data[7] = 0;
 
-  canMsg351.can_id  = 0x351;
-  canMsg351.can_dlc = 8;
   canMsg351.data[0] = 0xE0;
   canMsg351.data[1] = 0x01;
   canMsg351.data[2] = 0x80;
@@ -52,8 +128,6 @@ void can_data_init() {
   canMsg351.data[6] = 0;
   canMsg351.data[7] = 0;
 
-  canMsg355.can_id  = 0x355;
-  canMsg355.can_dlc = 8;
   canMsg355.data[0] = 0x50;
   canMsg355.data[1] = 0x00;
   canMsg355.data[2] = 0x50;
@@ -63,8 +137,6 @@ void can_data_init() {
   canMsg355.data[6] = 0;
   canMsg355.data[7] = 0;
 
-  canMsg356.can_id  = 0x356;
-  canMsg356.can_dlc = 8;
   canMsg356.data[0] = 0x50;
   canMsg356.data[1] = 0x01;
   canMsg356.data[2] = 0x50;
@@ -74,8 +146,6 @@ void can_data_init() {
   canMsg356.data[6] = 0;
   canMsg356.data[7] = 0;
 
-  canMsg35C.can_id  = 0x35C;
-  canMsg35C.can_dlc = 1;
   canMsg35C.data[0] = 0;
   canMsg35C.data[1] = 0;
   canMsg35C.data[2] = 0;
@@ -85,8 +155,6 @@ void can_data_init() {
   canMsg35C.data[6] = 0;
   canMsg35C.data[7] = 0;
 
-  canMsg35E.can_id  = 0x35E;
-  canMsg35E.can_dlc = 5;
   canMsg35E.data[0] = 'P';
   canMsg35E.data[1] = 'Y';
   canMsg35E.data[2] = 'L';
