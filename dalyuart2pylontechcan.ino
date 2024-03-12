@@ -31,6 +31,7 @@ void loop()
   if (Serial.available() != 0) {
     //bms.update();
     print_battery_state();
+    num_enters++;
   }
 
   // The inverter only sends keepalive messages with no data. Configured for Pylontech US5000, the inverter sends can messages 0x305, 0x306 and 0x307. 

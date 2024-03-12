@@ -2,30 +2,34 @@
 #include <mcp2515.h>
 #include "pylontech-can.h"
 
+
+uint8_t num_enters = 0;
+
+
 struct can_frame canMsg;
 struct can_frame canMsg359 {
   .can_id = 0x359,
-  .can_dlc = 8,
+   .can_dlc = 7,
 };
 struct can_frame canMsg351 {
   .can_id = 0x351,
-  .can_dlc = 8,
+   .can_dlc = 8,
 };
 struct can_frame canMsg355 {
   .can_id = 0x355,
-  .can_dlc = 8,
+   .can_dlc = 4,
 };
 struct can_frame canMsg356 {
   .can_id = 0x356,
-  .can_dlc = 8,
+   .can_dlc = 6,
 };
 struct can_frame canMsg35C {
   .can_id = 0x35C,
-  .can_dlc = 1,
+   .can_dlc = 2,
 };
 struct can_frame canMsg35E {
   .can_id = 0x35E,
-  .can_dlc = 8,
+   .can_dlc = 8,
 };
 
 struct {
@@ -59,6 +63,7 @@ struct {
 
 struct {
   uint8_t flags;
+  uint8_t padding;
 } *requests = (typeof(requests)) canMsg35C.data;
 
 struct {
@@ -160,9 +165,9 @@ void can_data_init() {
   canMsg35E.data[2] = 'L';
   canMsg35E.data[3] = 'O';
   canMsg35E.data[4] = 'N';
-  canMsg35E.data[5] = 0;
-  canMsg35E.data[6] = 0;
-  canMsg35E.data[7] = 0;
+  canMsg35E.data[5] = ' ';
+  canMsg35E.data[6] = ' ';
+  canMsg35E.data[7] = ' ';
 
   mcp2515.reset();
   mcp2515.setBitrate(CAN_1000KBPS);
@@ -240,7 +245,8 @@ void can_data_update(Daly_BMS_UART *bms) {
 //  }
   status_flags->protection2 = i;
   
-  status_flags->num_modules = 1;
+
+  status_flags->num_modules = 16;
   status_flags->magic_string[0] = 'P';
   status_flags->magic_string[1] = 'N';
   status_flags->magic_string[2] = 0;
@@ -255,8 +261,8 @@ void can_data_update(Daly_BMS_UART *bms) {
 
 
   // MESSAGE 355 BATTERY HEALTH
-  battery_health->soc_percent = bms->get.packSOC;
-  battery_health->soh_percent = 100; // This battery never gets old
+  battery_health->soc_percent = bms->get.packSOC / 10;
+  battery_health->soh_percent = 99; // This battery never gets old
   battery_health->padding[0] = 0;
   battery_health->padding[1] = 0;
   battery_health->padding[2] = 0;
@@ -281,6 +287,8 @@ void can_data_update(Daly_BMS_UART *bms) {
   }
   // We don't request force charges
   requests->flags = i; 
+  requests->padding = 0;
+
 
 void can_debug(can_frame *fr) {
   Serial.print("CAN > ");
@@ -294,13 +302,13 @@ void can_debug(can_frame *fr) {
 }
 
 void can_data_transmit() {
-  mcp2515.sendMessage(&canMsg359);
-  mcp2515.sendMessage(&canMsg351);
-  mcp2515.sendMessage(&canMsg355);
-  mcp2515.sendMessage(&canMsg356);
-  mcp2515.sendMessage(&canMsg35C);
   mcp2515.sendMessage(&canMsg35E);
-  Serial.println("Messages sent");
+  mcp2515.sendMessage(&canMsg35C);
+  mcp2515.sendMessage(&canMsg359);
+  mcp2515.sendMessage(&canMsg356);
+  mcp2515.sendMessage(&canMsg355);
+  mcp2515.sendMessage(&canMsg351);
+
 /*
   can_debug(&canMsg359);
   can_debug(&canMsg351);
@@ -312,4 +320,6 @@ void can_data_transmit() {
   Serial.println("");
   Serial.println("");
 */
+
+  //Serial.println("Messages sent");
 }
