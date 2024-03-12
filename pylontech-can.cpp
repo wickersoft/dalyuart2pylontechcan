@@ -250,14 +250,6 @@ void can_data_update(Daly_BMS_UART *bms) {
   status_flags->magic_string[0] = 'P';
   status_flags->magic_string[1] = 'N';
   status_flags->magic_string[2] = 0;
-  
-  
-  // MESSAGE 351 LIMITS
-  limits->pack_decivolts = 560;
-  limits->charge_limit_deciamps = 100;
-  limits->discharge_limit_deciamps = 100;
-  limits->padding[0] = 0;
-  limits->padding[1] = 0;
 
 
   // MESSAGE 355 BATTERY HEALTH
@@ -271,8 +263,8 @@ void can_data_update(Daly_BMS_UART *bms) {
 
   // MESSAGE 356 MEASUREMENTS
   measurements->pack_centivolts = 10 * bms->get.packVoltage;
-  measurements->pack_deciamps = bms->get.packCurrent;
-  measurements->pack_temp_dc = bms->get.tempAverage;
+  measurements->pack_deciamps = -bms->get.packCurrent;
+  measurements->pack_temp_dc = bms->get.tempAverage * 10;
   measurements->padding[0] = 0;
   measurements->padding[1] = 0;
 
@@ -289,6 +281,15 @@ void can_data_update(Daly_BMS_UART *bms) {
   requests->flags = i; 
   requests->padding = 0;
 
+
+  // We will calculate current limits manually later on, so we put this block here at the end
+  // MESSAGE 351 LIMITS
+  limits->pack_decivolts = 533;
+  limits->charge_limit_deciamps = 750;
+  limits->discharge_limit_deciamps = 750;
+  limits->padding[0] = 0xE0;
+  limits->padding[1] = 0x01;
+}
 
 void can_debug(can_frame *fr) {
   Serial.print("CAN > ");
