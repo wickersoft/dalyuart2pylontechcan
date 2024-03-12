@@ -36,7 +36,7 @@ public:
     {
         // data from 0x90
         uint16_t packVoltage; // Total pack voltage (0.1 V)
-        uint16_t packCurrent; // Current in (+) or out (-) of pack (0.1 A)
+        int16_t packCurrent; // Current in (+) or out (-) of pack (0.1 A)
         uint16_t packSOC;     // State Of Charge
 
         // data from 0x91
@@ -56,7 +56,7 @@ public:
         bool chargeFetState;          // charging MOSFET status
         bool disChargeFetState;       // discharge MOSFET state
         int bmsHeartBeat;             // BMS life (0~255 cycles)?
-        int resCapacitymAh;           // residual capacity mAH
+        int32_t resCapacitymAh;           // residual capacity mAH
 
         // data from 0x94
         int numberOfCells;    // Cell count
