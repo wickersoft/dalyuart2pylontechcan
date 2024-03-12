@@ -281,6 +281,16 @@ void can_data_update(Daly_BMS_UART *bms) {
   }
   // We don't request force charges
   requests->flags = i; 
+
+void can_debug(can_frame *fr) {
+  Serial.print("CAN > ");
+  Serial.print(fr->can_id, HEX);
+  Serial.print(": ");
+  for (int i = 0; i < fr->can_dlc; i++) {
+    Serial.print(fr->data[i], HEX);
+    Serial.print(" ");
+  }
+  Serial.print("\n");
 }
 
 void can_data_transmit() {
@@ -291,4 +301,15 @@ void can_data_transmit() {
   mcp2515.sendMessage(&canMsg35C);
   mcp2515.sendMessage(&canMsg35E);
   Serial.println("Messages sent");
+/*
+  can_debug(&canMsg359);
+  can_debug(&canMsg351);
+  can_debug(&canMsg355);
+  can_debug(&canMsg356);
+  can_debug(&canMsg35C);
+  can_debug(&canMsg35E);
+
+  Serial.println("");
+  Serial.println("");
+*/
 }

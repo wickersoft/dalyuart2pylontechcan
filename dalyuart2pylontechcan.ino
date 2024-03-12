@@ -41,6 +41,17 @@ void loop()
       bms.update();
       can_data_update(&bms);
     }
+
+/*
+    Serial.print("CAN < ");
+    Serial.print(canMsg.can_id, HEX);
+    Serial.print(": ");
+    for(int i = 0; i < canMsg.can_dlc; i++) {
+        Serial.print(canMsg.data[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.print("\n");
+*/    
   }
 }
 
@@ -62,17 +73,17 @@ void print_battery_state() {
   Serial.print(bms.get.packCurrent);
   Serial.print("dA ");
   Serial.print(bms.get.packSOC);
-  Serial.println("% SOC");
+  Serial.println(" SOC");
   Serial.print(F("Package Temperature (C):     "));
   Serial.println(bms.get.tempAverage);
   Serial.print(F("Highest Cell Voltage:        #"));
   Serial.print(bms.get.maxCellVNum);
   Serial.print(F(" with voltage "));
-  Serial.println((bms.get.maxCellmV / 1000));
+  Serial.println(bms.get.maxCellmV);
   Serial.print(F("Lowest Cell Voltage:         #"));
   Serial.print(bms.get.minCellVNum);
   Serial.print(F(" with voltage "));
-  Serial.println((bms.get.minCellmV / 1000));
+  Serial.println(bms.get.minCellmV);
   Serial.print(F("Number of Cells:             "));
   Serial.println(bms.get.numberOfCells);
   Serial.print(F("Number of Temp Sensors:      "));
@@ -94,14 +105,37 @@ void print_battery_state() {
     Serial.print(F("Cell voltage "));
     Serial.print(i);
     Serial.print(": ");
-    Serial.println(bms.get.cellVmV[i]);
+    Serial.print(bms.get.cellVmV[i]);
+    if(bms.get.cellBalanceState[i]) {
+      Serial.print("Balancing");
+    }
+    Serial.println("");
   }
 
   // Alarm flags
   // These are boolean flags that the BMS will set to indicate various issues.
   // For all flags see the alarm struct in daly-bms-uart.h and refer to the datasheet
-  Serial.print(F("Level one Cell V to High:    "));
-  Serial.println(bms.alarm.levelOneCellVoltageTooHigh);
+  Serial.print(F("Cell Voltages:    "));
+  Serial.print("Low ");
+  Serial.print(bms.alarm.levelTwoCellVoltageTooLow);
+  Serial.print(" ");
+  Serial.print(bms.alarm.levelOneCellVoltageTooLow);
+  Serial.print(" ");
+  Serial.print(bms.alarm.levelOneCellVoltageTooHigh);
+  Serial.print(" ");
+  Serial.print(bms.alarm.levelTwoCellVoltageTooHigh);
+  Serial.println(" High");
+
+  Serial.print(F("Pack Voltages:    "));
+  Serial.print("Low ");
+  Serial.print(bms.alarm.levelTwoPackVoltageTooLow);
+  Serial.print(" ");
+  Serial.print(bms.alarm.levelOnePackVoltageTooLow);
+  Serial.print(" ");
+  Serial.print(bms.alarm.levelOnePackVoltageTooHigh);
+  Serial.print(" ");
+  Serial.print(bms.alarm.levelTwoPackVoltageTooHigh);
+  Serial.println(" High");
 
   /**
      Advanced functions:
