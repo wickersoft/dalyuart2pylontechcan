@@ -3,7 +3,7 @@
 #include <SoftwareSerial.h>
 
 // Uncomment the below define to enable debug printing
-#define DEBUG_SERIAL Serial
+// #define DEBUG_SERIAL Serial
 
 //----------------------------------------------------------------------
 // Public Functions
