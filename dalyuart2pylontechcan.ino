@@ -6,7 +6,7 @@
 
 #define BMS_SERIAL sSerial // Set the serial port for communication with the Daly BMS
 
-SoftwareSerial sSerial(3, 5);
+SoftwareSerial sSerial(2, 5);
 MCP2515 mcp2515(8);
 Daly_BMS_UART bms(BMS_SERIAL); // Construct the BMS driver and passing in the Serial interface (which pins to use)
 
