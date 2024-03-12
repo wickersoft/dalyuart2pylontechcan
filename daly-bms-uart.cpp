@@ -217,7 +217,7 @@ bool Daly_BMS_UART::getCellVoltages() // 0x95
 
     this->sendCommand(COMMAND::CELL_VOLTAGES);
 
-    for (size_t i = 0; i <= ceil(get.numberOfCells / 3); i++)
+    for (size_t i = 0; i < ((get.numberOfCells + 2) / 3); i++)
     {
         if (!this->receiveBytes())
         {
@@ -262,7 +262,7 @@ bool Daly_BMS_UART::getCellTemperature() // 0x96
 
     this->sendCommand(COMMAND::CELL_TEMPERATURE);
 
-    for (size_t i = 0; i <= ceil(get.numOfTempSensors / 7); i++)
+    for (size_t i = 0; i < ((get.numOfTempSensors + 6) / 7); i++)
     {
 
         if (!this->receiveBytes())
