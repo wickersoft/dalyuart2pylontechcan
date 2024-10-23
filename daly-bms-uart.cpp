@@ -9,6 +9,9 @@
 // Public Functions
 //----------------------------------------------------------------------
 
+SoftwareSerial sSerial(2, 5);
+Daly_BMS_UART bms(sSerial); // Construct the BMS driver and passing in the Serial interface (which pins to use)
+
 Daly_BMS_UART::Daly_BMS_UART(SoftwareSerial &serial_peripheral)
 {
     this->my_serialIntf = &serial_peripheral;
@@ -97,15 +100,6 @@ bool Daly_BMS_UART::getPackMeasurements() // 0x90
     DEBUG_SERIAL.print(get.packCurrent);
     DEBUG_SERIAL.print("A, ");
 #endif
-    Serial.print(get.packSOC);
-    Serial.println("SOC");
-
-    for (int i = 0; i < 13; i++) {
-      Serial.print(this->my_rxBuffer[i], HEX);
-      Serial.print(" ");
-    }
-    Serial.print("\n");
-
     return true;
 }
 

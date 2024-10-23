@@ -1,26 +1,48 @@
+#include <avr/wdt.h>
 #include <SoftwareSerial.h>
 #include <SPI.h>
 #include <mcp2515.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 #include "daly-bms-uart.h" // This is where the library gets pulled in
 #include "pylontech-can.h"
+#include "current-limits.h"
+#include "ui.h"
+#include "bullshit.h"
 
-#define BMS_SERIAL sSerial // Set the serial port for communication with the Daly BMS
-
-SoftwareSerial sSerial(2, 5);
+uint8_t bullshit_requested = 0;
 MCP2515 mcp2515(8);
-Daly_BMS_UART bms(BMS_SERIAL); // Construct the BMS driver and passing in the Serial interface (which pins to use)
 
 void setup()
 {
+  watchdogSetup();
+    
+  // Used for debug printing. We initialize it after the bms object to override the baudrate
+  Serial.begin(1000000); // Serial interface for the Arduino Serial Monitor
+  Wire.begin();
+
+  for (byte i = 8; i < 120; i++)
+  {
+    Wire.beginTransmission (i);
+    if (Wire.endTransmission () == 0)
+    {
+      Serial.print ("Found address: ");
+      Serial.print (i, DEC);
+      Serial.print (" (0x");
+      Serial.print (i, HEX);
+      Serial.println (")");
+      delay (1);  // maybe unneeded?
+    } else {
+      Serial.print(".");
+    }
+  } // end of for loop
+  Serial.println("\n");
+
+  lcd_display_init();
   bms.Init(); // This call sets up the driver
   can_data_init();
 
-  // Used for debug printing. We initialize it after the bms object to override the baudrate
-  Serial.begin(115200); // Serial interface for the Arduino Serial Monitor
-
   // Print a message and wait for input from the user
-  Serial.println("------- CAN Read ----------");
-  Serial.println("ID  DLC   DATA");
   Serial.println("(Press any key and hit enter to query data from the BMS...)");
   bms.update();
   can_data_update(&bms);
@@ -28,38 +50,57 @@ void setup()
 
 void loop()
 {
-  if (Serial.available() != 0) {
-    //bms.update();
-    print_battery_state();
-    num_enters++;
+  while (Serial.available()) {
+    bullshit_requested = 1;
+    Serial.read();
   }
 
-  // The inverter only sends keepalive messages with no data. Configured for Pylontech US5000, the inverter sends can messages 0x305, 0x306 and 0x307. 
+  // The inverter only sends keepalive messages with no data. Configured for Pylontech US5000, the inverter sends can messages 0x305, 0x306 and 0x307.
   // We simply respond after the last one.
   if (is_can_frame_received()) {
     if (canMsg.can_id == 0x307) {
       can_data_transmit(); // I have seen CAN messages rejected if sent spontaneously, so let's play it safe and transmit as fast as possible, at the cost of only knowing a 1-second old battery state.
-      bms.update();
+      do {
+        bms.update();
+      } while (bms.get.packSOC > 1000);
       can_data_update(&bms);
+      print_battery_state_lcd();
+      print_battery_state_serial();
+      wdt_reset(); // reset the WDT timer
+      bullshit_requested = 0;
     }
 
-/*
-    Serial.print("CAN < ");
-    Serial.print(canMsg.can_id, HEX);
-    Serial.print(": ");
-    for(int i = 0; i < canMsg.can_dlc; i++) {
-        Serial.print(canMsg.data[i], HEX);
-        Serial.print(" ");
-    }
-    Serial.print("\n");
-*/    
+    /*
+        Serial.print("CAN < ");
+        Serial.print(canMsg.can_id, HEX);
+        Serial.print(": ");
+        for(int i = 0; i < canMsg.can_dlc; i++) {
+            Serial.print(canMsg.data[i], HEX);
+            Serial.print(" ");
+        }
+        Serial.print("\n");
+    */
   }
 }
 
-void print_battery_state() {
+
+/*
+void print_battery_state_serial() {
   // TODO: Could these both be reduced to a single flush()?
   // Right now there's a bug where if you send more than one character it will read multiple times
-  while(Serial.available()) {
+  while (Serial.available()) {
+    Serial.read(); // Discard the character sent
+  }
+
+  Serial.print("|");
+  Serial.write((uint8_t *) &(bms.get), sizeof(bms.get));
+}
+*/
+
+void print_battery_state_serial() {
+  // TODO: Could these both be reduced to a single flush()?
+  // Right now there's a bug where if you send more than one character it will read multiple times
+  while (Serial.available()) {
     Serial.read(); // Discard the character sent
   }
 
@@ -68,75 +109,157 @@ void print_battery_state() {
   // specific values from the BMS instead of all.
 
   // And print them out!
-  Serial.println(F("Basic BMS Data:              "));
-  Serial.print(bms.get.packVoltage);
-  Serial.print("dV ");
-  Serial.print(bms.get.packCurrent);
-  Serial.print("dA ");
-  Serial.print(bms.get.packSOC);
-  Serial.println(" SOC");
-  Serial.print(F("Package Temperature (C):     "));
-  Serial.println(bms.get.tempAverage);
-  Serial.print(F("Highest Cell Voltage:        #"));
-  Serial.print(bms.get.maxCellVNum);
-  Serial.print(F(" with voltage "));
-  Serial.println(bms.get.maxCellmV);
-  Serial.print(F("Lowest Cell Voltage:         #"));
-  Serial.print(bms.get.minCellVNum);
-  Serial.print(F(" with voltage "));
-  Serial.println(bms.get.minCellmV);
-  Serial.print(F("Number of Cells:             "));
-  Serial.println(bms.get.numberOfCells);
-  Serial.print(F("Number of Temp Sensors:      "));
-  Serial.println(bms.get.numOfTempSensors);
-  Serial.print(F("BMS Chrg / Dischrg Cycles:   "));
-  Serial.println(bms.get.bmsCycles);
-  Serial.print(F("BMS Heartbeat:               "));
-  Serial.println(bms.get.bmsHeartBeat); // cycle 0-255
-  Serial.print(F("Discharge MOSFet Status:     "));
-  Serial.println(bms.get.disChargeFetState);
-  Serial.print(F("Charge MOSFet Status:        "));
-  Serial.println(bms.get.chargeFetState);
-  Serial.print(F("Remaining Capacity mAh:      "));
-  Serial.println(bms.get.resCapacitymAh);
-  //... any many many more data
+  Serial.println("");
+  Serial.print("|");
 
-  for (size_t i = 0; i < size_t(bms.get.numberOfCells); i++)
-  {
-    Serial.print(F("Cell voltage "));
-    Serial.print(i);
-    Serial.print(": ");
-    Serial.print(bms.get.cellVmV[i]);
-    if(bms.get.cellBalanceState[i]) {
-      Serial.print("Balancing");
-    }
-    Serial.println("");
+  uint16_t display_soc = bms.get.packSOC;
+  if(bullshit_requested) {
+    display_soc = 1000;
   }
+  
+  if (display_soc < 1000) {
+    Serial.print(" ");
+  }
+  Serial.print(display_soc / 10);
+  Serial.print('.');
+  Serial.print(display_soc % 10);
+  Serial.print("%  ");
+  Serial.print(0.1 * bms.get.packVoltage);
+  Serial.print("V  ");
+
+  if (bms.get.packCurrent >= 0) {
+    Serial.print(" ");
+  }
+  if (abs(bms.get.packCurrent) < 1000) {
+    Serial.print(" ");
+  }
+  if (abs(bms.get.packCurrent) < 100) {
+    Serial.print(" ");
+  }
+  Serial.print(0.1 * bms.get.packCurrent);
+  Serial.println("A|");
+
+  Serial.print(F("|       "));
+  if (bms.get.resCapacitymAh < 100000) {
+    Serial.print(" ");
+  }
+  if (bms.get.resCapacitymAh < 10000) {
+    Serial.print(" ");
+  }
+  Serial.print(bms.get.resCapacitymAh);
+  Serial.println("mAh        |");
+
+  Serial.print("|");
+  Serial.print(bms.get.minCellmV);
+  Serial.print("..");
+  Serial.print(bms.get.maxCellmV);
+  Serial.print(F("mV Δ"));
+  if (bms.get.maxCellmV - bms.get.minCellmV < 100) {
+    Serial.print(" ");
+  }
+  if (bms.get.maxCellmV - bms.get.minCellmV < 10) {
+    Serial.print(" ");
+  }
+  Serial.print(bms.get.maxCellmV - bms.get.minCellmV);
+  Serial.print("mV ");
+  Serial.print(bms.get.tempAverage);
+  Serial.println("°C|");
+
+  Serial.print("|");
+  if (bms.get.minCellVNum - 1 < 10) {
+    Serial.print("  ");
+  } else {
+    Serial.print(" ");
+  }
+  Serial.print(bms.get.minCellVNum - 1);
+  Serial.print("^  ");
+
+  if (bms.get.maxCellVNum - 1 < 10) {
+    Serial.print(" ");
+  }
+  Serial.print(bms.get.maxCellVNum - 1);
+  Serial.print("^   L:  ");
+
+
+  uint16_t charge_limit_deciamps = get_charge_limit_deciamps( bms.get.maxCellmV,  bms.get.packSOC,  bms.get.tempAverage,  bms.get.packCurrent);
+  uint16_t discharge_limit_deciamps = get_discharge_limit_deciamps( bms.get.minCellmV,  bms.get.packSOC,  bms.get.tempAverage,  bms.get.packCurrent);
+
+  if (charge_limit_deciamps < 1000) {
+    Serial.print(" ");
+  }
+  if (charge_limit_deciamps < 100) {
+    Serial.print(" ");
+  }
+  Serial.print(charge_limit_deciamps / 10);
+  Serial.print("/");
+  if (discharge_limit_deciamps < 1000) {
+    Serial.print(" ");
+  }
+  if (discharge_limit_deciamps < 100) {
+    Serial.print(" ");
+  }
+  Serial.print(discharge_limit_deciamps / 10);
+  Serial.println("A|");
+
+  Serial.print(F(" FETs: "));
+  Serial.print(bms.get.chargeFetState);
+  Serial.print("/");
+  Serial.print(bms.get.disChargeFetState);
 
   // Alarm flags
   // These are boolean flags that the BMS will set to indicate various issues.
   // For all flags see the alarm struct in daly-bms-uart.h and refer to the datasheet
-  Serial.print(F("Cell Voltages:    "));
-  Serial.print("Low ");
-  Serial.print(bms.alarm.levelTwoCellVoltageTooLow);
-  Serial.print(" ");
-  Serial.print(bms.alarm.levelOneCellVoltageTooLow);
-  Serial.print(" ");
-  Serial.print(bms.alarm.levelOneCellVoltageTooHigh);
-  Serial.print(" ");
-  Serial.print(bms.alarm.levelTwoCellVoltageTooHigh);
-  Serial.println(" High");
 
-  Serial.print(F("Pack Voltages:    "));
-  Serial.print("Low ");
-  Serial.print(bms.alarm.levelTwoPackVoltageTooLow);
-  Serial.print(" ");
-  Serial.print(bms.alarm.levelOnePackVoltageTooLow);
-  Serial.print(" ");
-  Serial.print(bms.alarm.levelOnePackVoltageTooHigh);
-  Serial.print(" ");
-  Serial.print(bms.alarm.levelTwoPackVoltageTooHigh);
-  Serial.println(" High");
+  Serial.print(F("Cells: "));
+  if (bms.alarm.levelTwoCellVoltageTooLow) {
+    Serial.print("LO  ");
+  } else if (bms.alarm.levelOneCellVoltageTooLow) {
+    Serial.print("lo  ");
+  } else if (bms.alarm.levelOneCellVoltageTooHigh) {
+    Serial.print("hi  ");
+  } else if (bms.alarm.levelTwoCellVoltageTooHigh) {
+    Serial.print("HI  ");
+  } else {
+    Serial.print("0   ");
+  }
+
+  Serial.print(F("Pack: "));
+  if (bms.alarm.levelTwoPackVoltageTooLow) {
+    Serial.print("LO ");
+  } else if (bms.alarm.levelOnePackVoltageTooLow) {
+    Serial.print("lo ");
+  } else if (bms.alarm.levelOnePackVoltageTooHigh) {
+    Serial.print("hi ");
+  } else if (bms.alarm.levelTwoPackVoltageTooHigh) {
+    Serial.print("HI ");
+  } else {
+    Serial.print("0   ");
+  }
+
+  Serial.print(F("C/D Cycles: "));
+  Serial.print(bms.get.bmsCycles);
+  Serial.print(F(" HB "));
+  Serial.println(bms.get.bmsHeartBeat); // cycle 0-255
+
+
+  for (uint8_t i = 0; i < 15; i++)
+  {
+    if (i < 10) {
+      Serial.print("  ");
+    } else {
+      Serial.print(" ");
+    }
+    Serial.print(i);
+    if (bms.get.cellBalanceState[i]) {
+      Serial.print(":#");
+    } else {
+      Serial.print(": ");
+    }    Serial.print(bms.get.cellVmV[i]);
+    Serial.print(" ");
+    if (i == 7 || i == 14) {
+      Serial.println("");
+    }
+  }
 
   /**
      Advanced functions:
@@ -146,4 +269,24 @@ void print_battery_state() {
      bms.setChargeMOS(true); Switches on the charge Gate
      bms.setChargeMOS(false); Switches off the charge Gate
   */
+}
+
+void watchdogSetup(void)
+{
+  cli(); // disable all interrupts
+  wdt_reset(); // reset the WDT timer
+  /*
+    WDTCSR configuration:
+    WDIE = 1: Interrupt Enable
+    WDE = 1 :Reset Enable
+    WDP3 = 0 :For 2000ms Time-out
+    WDP2 = 1 :For 2000ms Time-out
+    WDP1 = 1 :For 2000ms Time-out
+    WDP0 = 1 :For 2000ms Time-out
+  */
+  // Enter Watchdog Configuration mode:
+  WDTCSR |= (1 << WDCE) | (1 << WDE);
+  // Set Watchdog settings:
+  WDTCSR = (1 << WDIE) | (1 << WDE) | (1 << WDP3) | (0 << WDP2) | (0 << WDP1) | (0 << WDP0);
+  sei();
 }

@@ -9,30 +9,7 @@
 
 #include <SoftwareSerial.h>
 
-class Daly_BMS_UART
-{
-public:
-    enum COMMAND
-    {
-        VOUT_IOUT_SOC = 0x90,
-        MIN_MAX_CELL_VOLTAGE = 0x91,
-        MIN_MAX_TEMPERATURE = 0x92,
-        DISCHARGE_CHARGE_MOS_STATUS = 0x93,
-        STATUS_INFO = 0x94,
-        CELL_VOLTAGES = 0x95,
-        CELL_TEMPERATURE = 0x96,
-        CELL_BALANCE_STATE = 0x97,
-        FAILURE_CODES = 0x98,
-        DISCHRG_FET = 0xD9,
-        CHRG_FET = 0xDA,
-        BMS_RESET = 0x00,
-    };
-
-    /**
-     * @brief get struct holds all the data collected from the BMS and is populated using the update() API
-     * @details Comments specify precision and units where applicable
-     */
-    struct
+typedef struct
     {
         // data from 0x90
         uint16_t packVoltage; // Total pack voltage (0.1 V)
@@ -78,7 +55,32 @@ public:
 
         // debug data string
         String aDebug;
-    } get;
+} bms_state_t;
+
+class Daly_BMS_UART
+{
+public:
+    enum COMMAND
+    {
+        VOUT_IOUT_SOC = 0x90,
+        MIN_MAX_CELL_VOLTAGE = 0x91,
+        MIN_MAX_TEMPERATURE = 0x92,
+        DISCHARGE_CHARGE_MOS_STATUS = 0x93,
+        STATUS_INFO = 0x94,
+        CELL_VOLTAGES = 0x95,
+        CELL_TEMPERATURE = 0x96,
+        CELL_BALANCE_STATE = 0x97,
+        FAILURE_CODES = 0x98,
+        DISCHRG_FET = 0xD9,
+        CHRG_FET = 0xDA,
+        BMS_RESET = 0x00,
+    };
+
+    /**
+     * @brief get struct holds all the data collected from the BMS and is populated using the update() API
+     * @details Comments specify precision and units where applicable
+     */
+    bms_state_t get;
 
     /**
      * @brief alarm struct holds booleans corresponding to all the possible alarms
@@ -294,5 +296,7 @@ private:
      */
     uint8_t my_rxBuffer[XFER_BUFFER_LENGTH];
 };
+
+extern Daly_BMS_UART bms; 
 
 #endif // DALY_BMS_UART_H

@@ -1,7 +1,9 @@
 #include <SPI.h>
 #include <mcp2515.h>
+#include "current-limits.h"
 #include "pylontech-can.h"
-
+#include "ui.h"
+#include "bullshit.h"
 
 uint8_t num_enters = 0;
 
@@ -192,7 +194,7 @@ void can_data_update(Daly_BMS_UART *bms) {
   }
   if(bms->alarm.levelTwoCellVoltageTooLow
   || bms->alarm.levelTwoPackVoltageTooLow ) {
-    i |= M359_B0_T1_CELL_UNDERVOLT;
+    //i |= M359_B0_T1_CELL_UNDERVOLT;
   }
   if(bms->alarm.levelTwoCellVoltageTooHigh
   || bms->alarm.levelTwoPackVoltageTooHigh ) {
@@ -226,7 +228,7 @@ void can_data_update(Daly_BMS_UART *bms) {
   }
   if(bms->alarm.levelOneCellVoltageTooLow
   || bms->alarm.levelOnePackVoltageTooLow ) {
-    i |= M359_B2_T3_CELL_LOW_VOLT;
+    //i |= M359_B2_T3_CELL_LOW_VOLT;
   }
   if(bms->alarm.levelOneCellVoltageTooHigh
   || bms->alarm.levelOnePackVoltageTooHigh ) {
@@ -254,6 +256,13 @@ void can_data_update(Daly_BMS_UART *bms) {
 
   // MESSAGE 355 BATTERY HEALTH
   battery_health->soc_percent = bms->get.packSOC / 10;
+  if(battery_health->soc_percent < 12) {
+    battery_health->soc_percent = 12;
+  }
+  if(bullshit_requested) {
+    battery_health->soc_percent = 100;
+  }
+  
   battery_health->soh_percent = 99; // This battery never gets old
   battery_health->padding[0] = 0;
   battery_health->padding[1] = 0;
@@ -261,7 +270,7 @@ void can_data_update(Daly_BMS_UART *bms) {
   battery_health->padding[3] = 0;
 
 
-  // MESSAGE 356 MEASUREMENTS
+  // MESSAGE 356 MEASUREMENTS  
   measurements->pack_centivolts = 10 * bms->get.packVoltage;
   measurements->pack_deciamps = -bms->get.packCurrent;
   measurements->pack_temp_dc = bms->get.tempAverage * 10;
@@ -281,14 +290,16 @@ void can_data_update(Daly_BMS_UART *bms) {
   requests->flags = i; 
   requests->padding = 0;
 
-
-  // We will calculate current limits manually later on, so we put this block here at the end
-  // MESSAGE 351 LIMITS
-  limits->pack_decivolts = 533;
-  limits->charge_limit_deciamps = 750;
-  limits->discharge_limit_deciamps = 750;
+  limits->charge_limit_deciamps = get_charge_limit_deciamps(bms->get.maxCellmV, bms->get.packSOC, bms->get.tempAverage, bms->get.packCurrent);
+  limits->discharge_limit_deciamps = get_discharge_limit_deciamps(bms->get.minCellmV, bms->get.packSOC, bms->get.tempAverage, bms->get.packCurrent);
+  
+  limits->pack_decivolts = 520;
   limits->padding[0] = 0xE0;
   limits->padding[1] = 0x01;
+
+//  Serial.print("Current limit: ");
+//  Serial.print(250 + 50 * (num_enters % 10));
+//  Serial.println("dA");
 }
 
 void can_debug(can_frame *fr) {
