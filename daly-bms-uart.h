@@ -7,8 +7,6 @@
 #define MIN_NUMBER_TEMP_SENSORS 1
 #define MAX_NUMBER_TEMP_SENSORS 16
 
-#include <SoftwareSerial.h>
-
 typedef struct
     {
         // data from 0x90
@@ -158,7 +156,7 @@ public:
      *
      * @param serialIntf UART interface BMS is connected to
      */
-    Daly_BMS_UART(SoftwareSerial &serialIntf);
+    Daly_BMS_UART(HardwareSerial &serialIntf);
 
     /**
      * @brief Initializes this driver
@@ -283,7 +281,7 @@ private:
      * @brief Serial interface used for communication
      * @details This is set in the constructor
      */
-    SoftwareSerial *my_serialIntf;
+    HardwareSerial *my_serialIntf;
 
     /**
      * @brief Buffer used to transmit data to the BMS

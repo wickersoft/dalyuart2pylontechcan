@@ -4,21 +4,26 @@
 #include <mcp2515.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+
+#include "buttons.h"
+#include "current-limits.h"
 #include "daly-bms-uart.h" // This is where the library gets pulled in
 #include "pylontech-can.h"
-#include "current-limits.h"
 #include "ui.h"
-#include "bullshit.h"
 
 uint8_t bullshit_requested = 0;
-MCP2515 mcp2515(8);
+uint8_t bms_offline_indicator = 0;
+
+MCP2515 mcp2515(7);
 
 void setup()
 {
   watchdogSetup();
-    
+  //pinMode(PIN_PB2, INPUT_PULLUP);
+
   // Used for debug printing. We initialize it after the bms object to override the baudrate
-  Serial.begin(1000000); // Serial interface for the Arduino Serial Monitor
+  Serial.begin(115200); // Serial interface for the Arduino Serial Monitor
+  Serial2.swap(1);
   Wire.begin();
 
   for (byte i = 8; i < 120; i++)
@@ -38,6 +43,7 @@ void setup()
   } // end of for loop
   Serial.println("\n");
 
+  buttons_init();
   lcd_display_init();
   bms.Init(); // This call sets up the driver
   can_data_init();
@@ -46,28 +52,28 @@ void setup()
   Serial.println("(Press any key and hit enter to query data from the BMS...)");
   bms.update();
   can_data_update(&bms);
+  print_battery_state_lcd();
 }
 
 void loop()
 {
-  while (Serial.available()) {
-    bullshit_requested = 1;
-    Serial.read();
-  }
-
   // The inverter only sends keepalive messages with no data. Configured for Pylontech US5000, the inverter sends can messages 0x305, 0x306 and 0x307.
   // We simply respond after the last one.
   if (is_can_frame_received()) {
     if (canMsg.can_id == 0x307) {
       can_data_transmit(); // I have seen CAN messages rejected if sent spontaneously, so let's play it safe and transmit as fast as possible, at the cost of only knowing a 1-second old battery state.
       do {
-        bms.update();
-      } while (bms.get.packSOC > 1000);
+        // This .update() call populates the entire get struct. If you only need certain values (like
+        // SOC & Voltage) you could use other public APIs, like getPackMeasurements(), which only query
+        // specific values from the BMS instead of all.
+        bms_offline_indicator = !bms.update();
+      } while (bms.get.packSOC > 1000); // Reject any implausible updates, this will go away when we have a hardware serial for the BMS
       can_data_update(&bms);
+      buttons_update();
+      can_data_apply_overrides();
       print_battery_state_lcd();
       print_battery_state_serial();
       wdt_reset(); // reset the WDT timer
-      bullshit_requested = 0;
     }
 
     /*
@@ -83,40 +89,30 @@ void loop()
   }
 }
 
-
-/*
 void print_battery_state_serial() {
   // TODO: Could these both be reduced to a single flush()?
   // Right now there's a bug where if you send more than one character it will read multiple times
   while (Serial.available()) {
     Serial.read(); // Discard the character sent
   }
-
-  Serial.print("|");
-  Serial.write((uint8_t *) &(bms.get), sizeof(bms.get));
-}
-*/
-
-void print_battery_state_serial() {
-  // TODO: Could these both be reduced to a single flush()?
-  // Right now there's a bug where if you send more than one character it will read multiple times
-  while (Serial.available()) {
-    Serial.read(); // Discard the character sent
-  }
-
-  // This .update() call populates the entire get struct. If you only need certain values (like
-  // SOC & Voltage) you could use other public APIs, like getPackMeasurements(), which only query
-  // specific values from the BMS instead of all.
 
   // And print them out!
-  Serial.println("");
-  Serial.print("|");
+  Serial.println("\033[1A\033[K");
 
   uint16_t display_soc = bms.get.packSOC;
-  if(bullshit_requested) {
+  if (button_cancel_force_charge) {
     display_soc = 1000;
+    Serial.print(F("Cancel Charge: "));
+    Serial.println(button_cancel_force_charge);
+  }
+  if (button_request_force_charge) {
+    display_soc = 90;
+    Serial.print(F("Force Charge: "));
+    Serial.println(button_request_force_charge);
   }
   
+  Serial.print("|");
+
   if (display_soc < 1000) {
     Serial.print(" ");
   }
@@ -146,10 +142,15 @@ void print_battery_state_serial() {
   if (bms.get.resCapacitymAh < 10000) {
     Serial.print(" ");
   }
-  Serial.print(bms.get.resCapacitymAh);
-  Serial.println("mAh        |");
+  Serial.print(bms.get.resCapacitymAh * 0.001);
+  Serial.print("Ah");;
+  if (bms_offline_indicator) {
+    Serial.print(" OFFLINE");
+  } else {
+    Serial.print("         ");
+  }
 
-  Serial.print("|");
+  Serial.print("|\r\n|");
   Serial.print(bms.get.minCellmV);
   Serial.print("..");
   Serial.print(bms.get.maxCellmV);
@@ -275,18 +276,6 @@ void watchdogSetup(void)
 {
   cli(); // disable all interrupts
   wdt_reset(); // reset the WDT timer
-  /*
-    WDTCSR configuration:
-    WDIE = 1: Interrupt Enable
-    WDE = 1 :Reset Enable
-    WDP3 = 0 :For 2000ms Time-out
-    WDP2 = 1 :For 2000ms Time-out
-    WDP1 = 1 :For 2000ms Time-out
-    WDP0 = 1 :For 2000ms Time-out
-  */
-  // Enter Watchdog Configuration mode:
-  WDTCSR |= (1 << WDCE) | (1 << WDE);
-  // Set Watchdog settings:
-  WDTCSR = (1 << WDIE) | (1 << WDE) | (1 << WDP3) | (0 << WDP2) | (0 << WDP1) | (0 << WDP0);
+  wdt_enable(11);
   sei();
 }

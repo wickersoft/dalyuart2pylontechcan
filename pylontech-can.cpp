@@ -1,9 +1,9 @@
 #include <SPI.h>
 #include <mcp2515.h>
+#include "buttons.h"
 #include "current-limits.h"
 #include "pylontech-can.h"
 #include "ui.h"
-#include "bullshit.h"
 
 uint8_t num_enters = 0;
 
@@ -99,6 +99,9 @@ struct {
 
 
 uint8_t is_can_frame_received() {
+  if(digitalReadFast(PIN_PB2)) {
+    return;
+  }
   return mcp2515.readMessage(&canMsg) == MCP2515::ERROR_OK;
 }
 
@@ -181,72 +184,72 @@ void can_data_update(Daly_BMS_UART *bms) {
 
   // MESSAGE 359 STATUS FLAGS
   // Byte 0 Protection/Critical 1
-  if(bms->alarm.levelTwoDischargeCurrentTooHigh) {
+  if (bms->alarm.levelTwoDischargeCurrentTooHigh) {
     i |= M359_B0_T1_DISCH_OVERCURRENT;
   }
-  if(bms->alarm.levelTwoChargeTempTooLow
-  || bms->alarm.levelTwoDischargeTempTooLow ) {
+  if (bms->alarm.levelTwoChargeTempTooLow
+      || bms->alarm.levelTwoDischargeTempTooLow ) {
     i |= M359_B0_T1_CELL_UNDERTEMP;
   }
-  if(bms->alarm.levelTwoChargeTempTooHigh
-  || bms->alarm.levelTwoDischargeTempTooHigh ) {
+  if (bms->alarm.levelTwoChargeTempTooHigh
+      || bms->alarm.levelTwoDischargeTempTooHigh ) {
     i |= M359_B0_T1_CELL_OVERTEMP;
   }
-  if(bms->alarm.levelTwoCellVoltageTooLow
-  || bms->alarm.levelTwoPackVoltageTooLow ) {
+  if (bms->alarm.levelTwoCellVoltageTooLow
+      || bms->alarm.levelTwoPackVoltageTooLow ) {
     //i |= M359_B0_T1_CELL_UNDERVOLT;
   }
-  if(bms->alarm.levelTwoCellVoltageTooHigh
-  || bms->alarm.levelTwoPackVoltageTooHigh ) {
+  if (bms->alarm.levelTwoCellVoltageTooHigh
+      || bms->alarm.levelTwoPackVoltageTooHigh ) {
     i |= M359_B0_T1_CELL_OVERVOLT;
   }
   status_flags->protection1 = i;
   i = 0;
 
   // Byte 1 Protection/Critical 2
-  if(bms->alarm.levelTwoChargeCurrentTooHigh) {
+  if (bms->alarm.levelTwoChargeCurrentTooHigh) {
     i |= M359_B1_T2_CHARGE_OVERCURRENT;
   }
-//  if() {  // No condition currently known that should set this bit
-//    i |= M359_B1_T2_SYSTEM_ERROR;
-//  }
+  //  if() {  // No condition currently known that should set this bit
+  //    i |= M359_B1_T2_SYSTEM_ERROR;
+  //  }
   status_flags->protection2 = i;
   i = 0;
 
 
-  // Byte 2 Alarm/Warning 1 
-  if(bms->alarm.levelOneDischargeCurrentTooHigh) {
+  // Byte 2 Alarm/Warning 1
+  if (bms->alarm.levelOneDischargeCurrentTooHigh) {
     i |= M359_B2_T3_DISCH_HIGH_CURRENT;
   }
-  if(bms->alarm.levelOneChargeTempTooLow
-  || bms->alarm.levelOneDischargeTempTooLow ) {
+  if (bms->alarm.levelOneChargeTempTooLow
+      || bms->alarm.levelOneDischargeTempTooLow ) {
     i |= M359_B2_T3_CELL_LOW_TEMP;
   }
-  if(bms->alarm.levelOneChargeTempTooHigh
-  || bms->alarm.levelOneDischargeTempTooHigh ) {
+  if (bms->alarm.levelOneChargeTempTooHigh
+      || bms->alarm.levelOneDischargeTempTooHigh ) {
     i |= M359_B2_T3_CELL_HIGH_TEMP;
   }
-  if(bms->alarm.levelOneCellVoltageTooLow
-  || bms->alarm.levelOnePackVoltageTooLow ) {
+  if (bms->alarm.levelOneCellVoltageTooLow
+      || bms->alarm.levelOnePackVoltageTooLow ) {
     //i |= M359_B2_T3_CELL_LOW_VOLT;
   }
-  if(bms->alarm.levelOneCellVoltageTooHigh
-  || bms->alarm.levelOnePackVoltageTooHigh ) {
+  if (bms->alarm.levelOneCellVoltageTooHigh
+      || bms->alarm.levelOnePackVoltageTooHigh ) {
     i |= M359_B2_T3_CELL_HIGH_VOLT;
   }
-  status_flags->alarm1 = i;  
+  status_flags->alarm1 = i;
   i = 0;
 
 
   // Byte 3 Alarm/Warning 2
-  if(bms->alarm.levelOneChargeCurrentTooHigh) {
+  if (bms->alarm.levelOneChargeCurrentTooHigh) {
     i |= M359_B3_T4_CHARGE_HIGH_CURRENT;
   }
-//  if() {  // No condition currently known that should set this bit
-//    i |= M359_B3_T4_INTERNAL_COMM_ERROR;
-//  }
+  //  if() {  // No condition currently known that should set this bit
+  //    i |= M359_B3_T4_INTERNAL_COMM_ERROR;
+  //  }
   status_flags->protection2 = i;
-  
+
 
   status_flags->num_modules = 16;
   status_flags->magic_string[0] = 'P';
@@ -256,13 +259,10 @@ void can_data_update(Daly_BMS_UART *bms) {
 
   // MESSAGE 355 BATTERY HEALTH
   battery_health->soc_percent = bms->get.packSOC / 10;
-  if(battery_health->soc_percent < 12) {
-    battery_health->soc_percent = 12;
+  if (battery_health->soc_percent < 11) {
+    battery_health->soc_percent = 11;
   }
-  if(bullshit_requested) {
-    battery_health->soc_percent = 100;
-  }
-  
+
   battery_health->soh_percent = 99; // This battery never gets old
   battery_health->padding[0] = 0;
   battery_health->padding[1] = 0;
@@ -270,7 +270,7 @@ void can_data_update(Daly_BMS_UART *bms) {
   battery_health->padding[3] = 0;
 
 
-  // MESSAGE 356 MEASUREMENTS  
+  // MESSAGE 356 MEASUREMENTS
   measurements->pack_centivolts = 10 * bms->get.packVoltage;
   measurements->pack_deciamps = -bms->get.packCurrent;
   measurements->pack_temp_dc = bms->get.tempAverage * 10;
@@ -280,26 +280,22 @@ void can_data_update(Daly_BMS_UART *bms) {
 
   i = 0;
   // MESSAGE 35C REQUESTS
-  if(bms->get.chargeFetState) {
+  if (bms->get.chargeFetState) {
     i |= M35C_B0_T5_CHARGE_ENABLE;
   }
-  if(bms->get.disChargeFetState) {
+  if (bms->get.disChargeFetState) {
     i |= M35C_B0_T5_DISCH_ENABLE;
   }
   // We don't request force charges
-  requests->flags = i; 
+  requests->flags = i;
   requests->padding = 0;
 
   limits->charge_limit_deciamps = get_charge_limit_deciamps(bms->get.maxCellmV, bms->get.packSOC, bms->get.tempAverage, bms->get.packCurrent);
   limits->discharge_limit_deciamps = get_discharge_limit_deciamps(bms->get.minCellmV, bms->get.packSOC, bms->get.tempAverage, bms->get.packCurrent);
-  
+
   limits->pack_decivolts = 520;
   limits->padding[0] = 0xE0;
   limits->padding[1] = 0x01;
-
-//  Serial.print("Current limit: ");
-//  Serial.print(250 + 50 * (num_enters % 10));
-//  Serial.println("dA");
 }
 
 void can_debug(can_frame *fr) {
@@ -313,6 +309,17 @@ void can_debug(can_frame *fr) {
   Serial.print("\n");
 }
 
+void can_data_apply_overrides() {
+    if(button_cancel_force_charge) {
+      battery_health->soc_percent = 100;
+    }
+
+    if(button_request_force_charge) {
+      battery_health->soc_percent = 9;
+      requests->flags |= M35C_B0_T5_REQUEST_FORCE_CHARGE_2;
+    }
+}
+
 void can_data_transmit() {
   mcp2515.sendMessage(&canMsg35E);
   mcp2515.sendMessage(&canMsg35C);
@@ -321,17 +328,17 @@ void can_data_transmit() {
   mcp2515.sendMessage(&canMsg355);
   mcp2515.sendMessage(&canMsg351);
 
-/*
-  can_debug(&canMsg359);
-  can_debug(&canMsg351);
-  can_debug(&canMsg355);
-  can_debug(&canMsg356);
-  can_debug(&canMsg35C);
-  can_debug(&canMsg35E);
+  /*
+    can_debug(&canMsg359);
+    can_debug(&canMsg351);
+    can_debug(&canMsg355);
+    can_debug(&canMsg356);
+    can_debug(&canMsg35C);
+    can_debug(&canMsg35E);
 
-  Serial.println("");
-  Serial.println("");
-*/
+    Serial.println("");
+    Serial.println("");
+  */
 
   //Serial.println("Messages sent");
 }

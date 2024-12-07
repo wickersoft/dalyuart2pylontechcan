@@ -1,6 +1,5 @@
 #include "Arduino.h"
 #include "daly-bms-uart.h"
-#include <SoftwareSerial.h>
 
 // Uncomment the below define to enable debug printing
 // #define DEBUG_SERIAL Serial
@@ -9,10 +8,9 @@
 // Public Functions
 //----------------------------------------------------------------------
 
-SoftwareSerial sSerial(2, 5);
-Daly_BMS_UART bms(sSerial); // Construct the BMS driver and passing in the Serial interface (which pins to use)
+Daly_BMS_UART bms(Serial2); // Construct the BMS driver and passing in the Serial interface (which pins to use)
 
-Daly_BMS_UART::Daly_BMS_UART(SoftwareSerial &serial_peripheral)
+Daly_BMS_UART::Daly_BMS_UART(HardwareSerial &serial_peripheral)
 {
     this->my_serialIntf = &serial_peripheral;
 }

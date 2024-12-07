@@ -1,9 +1,10 @@
-#include "ui.h"
+#include "arduino.h"
+
+#include "buttons.h"
 #include "current-limits.h"
 #include "daly-bms-uart.h"
-#include "bullshit.h"
+#include "ui.h"
 
-#include "arduino.h"
 
 const uint8_t customCharmV[] = {
   0B11100,
@@ -60,11 +61,8 @@ uint8_t customCharHalfBar[] = {
   0B11111,
 };
 
-LiquidCrystal_I2C lcd(0x3F, 20, 4); // I2C address 0x27, 16 column and 2 rows
-
-// Default values: 150A both directions
-uint16_t ui_max_charge_current = 1400;
-uint16_t ui_max_discharge_current = 1400;
+//LiquidCrystal_I2C lcd(0x3F, 20, 4); // I2C address 0x27, 16 column and 2 rows
+LiquidCrystal_I2C lcd(0x27, 20, 4); // I2C address 0x27, 16 column and 2 rows
 
 void lcd_display_init() {
   lcd.init(); // initialize the lcd
@@ -74,8 +72,6 @@ void lcd_display_init() {
   lcd.createChar(3, customCharDelta);
   lcd.createChar(4, customCharCelsius);
 }
-
-
 
 
 void print_int_right_adjusted(int16_t value, uint8_t digits, uint8_t sign) {
@@ -134,9 +130,13 @@ void print_battery_state_lcd() {
 
   lcd.setCursor(0, 0);         // move cursor to   (0, 0)
   uint16_t display_soc = bms.get.packSOC;
-  if(bullshit_requested) {
+  if(button_cancel_force_charge) {
     display_soc = 1000;
   }
+  if(button_request_force_charge) {
+    display_soc = 90;
+  }
+
   print_int_right_adjusted(display_soc / 10, 3, 0);
   lcd.print(".");
   lcd.print(display_soc % 10);
@@ -161,6 +161,11 @@ void print_battery_state_lcd() {
   lcd.print((char) 0x05);
   for (uint8_t i = bat_div + 1; i < 20; i++) {
     lcd.print(' ');
+  }
+
+  if(bms_offline_indicator) {
+    lcd.setCursor(6, 1);         // move cursor to   (0, 0)
+    lcd.print("OFFLINE!");  
   }
 
 
