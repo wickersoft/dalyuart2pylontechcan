@@ -18,7 +18,7 @@ void setup()
   watchdogSetup();
     
   // Used for debug printing. We initialize it after the bms object to override the baudrate
-  Serial.begin(1000000); // Serial interface for the Arduino Serial Monitor
+  Serial.begin(115200); // Serial interface for the Arduino Serial Monitor
   Wire.begin();
 
   for (byte i = 8; i < 120; i++)
