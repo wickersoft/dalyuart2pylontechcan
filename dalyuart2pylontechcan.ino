@@ -8,9 +8,10 @@
 #include "pylontech-can.h"
 #include "current-limits.h"
 #include "ui.h"
-#include "bullshit.h"
+#include "buttons.h"
 
-uint8_t bullshit_requested = 0;
+uint8_t bms_offline_indicator = 0;
+
 MCP2515 mcp2515(8);
 
 void setup()
@@ -46,12 +47,12 @@ void setup()
   Serial.println("(Press any key and hit enter to query data from the BMS...)");
   bms.update();
   can_data_update(&bms);
+  buttons_init();
 }
 
 void loop()
 {
   while (Serial.available()) {
-    bullshit_requested = 1;
     Serial.read();
   }
 
@@ -60,14 +61,21 @@ void loop()
   if (is_can_frame_received()) {
     if (canMsg.can_id == 0x307) {
       can_data_transmit(); // I have seen CAN messages rejected if sent spontaneously, so let's play it safe and transmit as fast as possible, at the cost of only knowing a 1-second old battery state.
+      uint8_t retries = 3;
       do {
-        bms.update();
-      } while (bms.get.packSOC > 1000);
-      can_data_update(&bms);
+        // This .update() call populates the entire get struct. If you only need certain values (like
+        // SOC & Voltage) you could use other public APIs, like getPackMeasurements(), which only query
+        // specific values from the BMS instead of all.
+        bms_offline_indicator = !bms.update();
+      } while ((bms_offline_indicator || bms.get.packSOC > 1000 || bms.get.packSOC < 0) && --retries); // Reject any implausible updates, this will go away when we have a hardware serial for the BMS
+      if(retries) {
+        can_data_update(&bms);
+      }
+      buttons_update();
+      can_data_apply_overrides();
       print_battery_state_lcd();
       print_battery_state_serial();
       wdt_reset(); // reset the WDT timer
-      bullshit_requested = 0;
     }
 
     /*
@@ -104,19 +112,23 @@ void print_battery_state_serial() {
     Serial.read(); // Discard the character sent
   }
 
-  // This .update() call populates the entire get struct. If you only need certain values (like
-  // SOC & Voltage) you could use other public APIs, like getPackMeasurements(), which only query
-  // specific values from the BMS instead of all.
-
   // And print them out!
-  Serial.println("");
-  Serial.print("|");
+  Serial.println("\033[1A\033[K");
 
   uint16_t display_soc = bms.get.packSOC;
-  if(bullshit_requested) {
+  if (button_cancel_force_charge) {
     display_soc = 1000;
+    Serial.print(F("Cancel Charge: "));
+    Serial.println(button_cancel_force_charge);
+  }
+  if (button_request_force_charge) {
+    display_soc = 90;
+    Serial.print(F("Force Charge: "));
+    Serial.println(button_request_force_charge);
   }
   
+  Serial.print("|");
+
   if (display_soc < 1000) {
     Serial.print(" ");
   }
@@ -146,10 +158,15 @@ void print_battery_state_serial() {
   if (bms.get.resCapacitymAh < 10000) {
     Serial.print(" ");
   }
-  Serial.print(bms.get.resCapacitymAh);
-  Serial.println("mAh        |");
+  Serial.print(bms.get.resCapacitymAh * 0.001);
+  Serial.print("Ah");
+  if (bms_offline_indicator) {
+    Serial.print(" OFFLINE");
+  } else {
+    Serial.print("         ");
+  }
 
-  Serial.print("|");
+  Serial.print("|\r\n|");
   Serial.print(bms.get.minCellmV);
   Serial.print("..");
   Serial.print(bms.get.maxCellmV);
@@ -260,6 +277,7 @@ void print_battery_state_serial() {
       Serial.println("");
     }
   }
+
 
   /**
      Advanced functions:

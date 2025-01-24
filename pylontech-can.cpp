@@ -1,9 +1,9 @@
 #include <SPI.h>
 #include <mcp2515.h>
-#include "buttons.h"
 #include "current-limits.h"
 #include "pylontech-can.h"
 #include "ui.h"
+#include "buttons.h"
 
 uint8_t num_enters = 0;
 

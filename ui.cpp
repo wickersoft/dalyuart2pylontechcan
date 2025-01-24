@@ -1,7 +1,6 @@
 #include "ui.h"
 #include "current-limits.h"
 #include "daly-bms-uart.h"
-#include "bullshit.h"
 
 #include "arduino.h"
 
@@ -134,9 +133,6 @@ void print_battery_state_lcd() {
 
   lcd.setCursor(0, 0);         // move cursor to   (0, 0)
   uint16_t display_soc = bms.get.packSOC;
-  if(bullshit_requested) {
-    display_soc = 1000;
-  }
   print_int_right_adjusted(display_soc / 10, 3, 0);
   lcd.print(".");
   lcd.print(display_soc % 10);
