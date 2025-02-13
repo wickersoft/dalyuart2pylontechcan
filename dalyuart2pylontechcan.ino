@@ -113,7 +113,7 @@ void print_battery_state_serial() {
   }
 
   // And print them out!
-  Serial.println("\033[1A\033[K");
+  Serial.println("\033[1A\033[K\033[1A\033[K\033[1A\033[K\033[1A\033[K\033[1A\033[K\033[1A\033[K\033[1A\033[K\033[1A\033[K");
 
   uint16_t display_soc = bms.get.packSOC;
   if (button_cancel_force_charge) {
@@ -218,7 +218,7 @@ void print_battery_state_serial() {
   Serial.print(discharge_limit_deciamps / 10);
   Serial.println("A|");
 
-  Serial.print(F(" FETs: "));
+  Serial.print(F("FETs: "));
   Serial.print(bms.get.chargeFetState);
   Serial.print("/");
   Serial.print(bms.get.disChargeFetState);
@@ -227,7 +227,7 @@ void print_battery_state_serial() {
   // These are boolean flags that the BMS will set to indicate various issues.
   // For all flags see the alarm struct in daly-bms-uart.h and refer to the datasheet
 
-  Serial.print(F("Cells: "));
+  Serial.print(F(" Cells: "));
   if (bms.alarm.levelTwoCellVoltageTooLow) {
     Serial.print("LO  ");
   } else if (bms.alarm.levelOneCellVoltageTooLow) {
@@ -237,7 +237,7 @@ void print_battery_state_serial() {
   } else if (bms.alarm.levelTwoCellVoltageTooHigh) {
     Serial.print("HI  ");
   } else {
-    Serial.print("0   ");
+    Serial.print("ok  ");
   }
 
   Serial.print(F("Pack: "));
@@ -250,7 +250,7 @@ void print_battery_state_serial() {
   } else if (bms.alarm.levelTwoPackVoltageTooHigh) {
     Serial.print("HI ");
   } else {
-    Serial.print("0   ");
+    Serial.print("ok  ");
   }
 
   Serial.print(F("C/D Cycles: "));
