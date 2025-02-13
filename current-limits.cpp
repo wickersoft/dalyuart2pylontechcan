@@ -17,8 +17,8 @@ uint16_t get_charge_limit_deciamps(uint16_t max_cell_mv, uint16_t bat_soc_permil
   
   int16_t limit = current_deciamps + 9 * (SLOPE_HIGH_END_MV - max_cell_mv); 
 
-  if(temp_celsius < 10 && limit > 750) {
-    limit = 750;
+  if(temp_celsius < 10 && limit > 1000) {
+    limit = 1000;
   }
 
   if(limit < 30) {
@@ -44,8 +44,8 @@ uint16_t get_discharge_limit_deciamps(uint16_t min_cell_mv, uint16_t bat_soc_per
 
   int16_t limit = -current_deciamps + 9 * (min_cell_mv - SLOPE_LOW_END_MV); 
 
-  if(temp_celsius < 10 && limit > 500) {
-    limit = 500;
+  if(temp_celsius < 10 && limit > 1000) {
+    limit = 1000;
   }
 
   if(limit < 0) {
