@@ -4,7 +4,7 @@
 #include "stdint.h"
 
 #define ABS_LIMIT_DISCHARGE 1750
-#define ABS_LIMIT_CHARGE 1750
+#define ABS_LIMIT_CHARGE 1600
 #define SLOPE_HIGH_END_MV 3505
 #define SLOPE_LOW_END_MV 3105
 
