@@ -170,6 +170,7 @@ struct {
 #define M35A_B0_A_CELL_OVERTEMP (1 << 6)
 #define M35A_B0_A_CELL_UNDERVOLT (1 << 4)
 #define M35A_B0_A_CELL_OVERVOLT (1 << 2)
+#define M35A_B0_A_UNUSED (1 << 0)
 
 #define M35A_B1_A_DISCH_OVERCURRENT (1 << 6)
 #define M35A_B1_A_CHARGE_UNDERTEMP (1 << 4)
@@ -177,13 +178,16 @@ struct {
 #define M35A_B1_A_UNDERTEMP (1 << 0)
 
 #define M35A_B2_A_SYSTEM_ERROR (1 << 6)
+#define M35A_B2_A_UNUSED (1 << 4) || (1 << 2)
 #define M35A_B2_A_CHARGE_OVERCURRENT (1 << 0)
 
+#define M35A_B3_A_UNUSED (1 << 6) || (1 << 4) || (1 << 2)
 #define M35A_B3_A_CELL_IMBAANCE (1 << 0)
 
 #define M35A_B4_W_CELL_OVERTEMP (1 << 6)
 #define M35A_B4_W_CELL_UNDERVOLT (1 << 4)
 #define M35A_B4_W_CELL_OVERVOLT (1 << 2)
+#define M35A_B4_W_UNUSED (1 << 0)
 
 #define M35A_B5_W_DISCH_OVERCURRENT (1 << 6)
 #define M35A_B5_W_CHARGE_UNDERTEMP (1 << 4)
@@ -191,8 +195,10 @@ struct {
 #define M35A_B5_W_UNDERTEMP (1 << 0)
 
 #define M35A_B6_W_SYSTEM_ERROR (1 << 6)
+#define M35A_B6_W_UNUSED (1 << 4) || (1 << 2)
 #define M35A_B6_W_CHARGE_OVERCURRENT (1 << 0)
 
+#define M35A_B7_W_UNUSED (1 << 6) || (1 << 4) || (1 << 2)
 #define M35A_B7_W_CELL_IMBAANCE (1 << 0)
 
 
@@ -274,7 +280,7 @@ void can_data_init() {
   struct351_limits->pack_decivolts_lo = 470;
 
   struct355_soc_soh->soc_percent = 50;
-  struct355_soc_soh->soh_percent = 100;
+  struct355_soc_soh->soh_percent = 99;
   struct355_soc_soh->padding[0] = 0;
   struct355_soc_soh->padding[1] = 0;
   struct355_soc_soh->padding[2] = 0;
@@ -357,108 +363,96 @@ void can_data_init() {
   mcp2515.setNormalMode();
 }
 
-void can_data_update(Daly_BMS_UART *bms) {}
 
-/*
 void can_data_update(Daly_BMS_UART *bms) {
   uint8_t i = 0;
 
   // MESSAGE 359 STATUS FLAGS
+
   // Byte 0 Protection/Critical 1
-  if (bms->alarm.levelTwoDischargeCurrentTooHigh) {
-    i |= M359_B0_T1_DISCH_OVERCURRENT;
-  }
-  if (bms->alarm.levelTwoChargeTempTooLow
-      || bms->alarm.levelTwoDischargeTempTooLow ) {
-    i |= M359_B0_T1_CELL_UNDERTEMP;
-  }
-  if (bms->alarm.levelTwoChargeTempTooHigh
-      || bms->alarm.levelTwoDischargeTempTooHigh ) {
-    i |= M359_B0_T1_CELL_OVERTEMP;
-  }
-  if (bms->alarm.levelTwoCellVoltageTooLow
-      || bms->alarm.levelTwoPackVoltageTooLow ) {
-    //i |= M359_B0_T1_CELL_UNDERVOLT;
-  }
-  if (bms->alarm.levelTwoCellVoltageTooHigh
-      || bms->alarm.levelTwoPackVoltageTooHigh ) {
-    i |= M359_B0_T1_CELL_OVERVOLT;
-  }
-  status_flags->protection1 = i;
-  i = 0;
+  i |= (bms->alarm.levelTwoDischargeTempTooHigh)     ? M35A_B0_A_CELL_OVERTEMP       : M35A_B0_A_CELL_OVERTEMP      << 1;
+  i |= (bms->alarm.levelTwoCellVoltageTooLow
+     || bms->alarm.levelTwoPackVoltageTooLow)        ? M35A_B0_A_CELL_UNDERVOLT      : M35A_B0_A_CELL_UNDERVOLT     << 1;
+  i |= (bms->alarm.levelTwoCellVoltageTooHigh
+     || bms->alarm.levelTwoPackVoltageTooHigh)       ? M35A_B0_A_CELL_OVERVOLT       : M35A_B0_A_CELL_OVERVOLT      << 1;
+  i |= M35A_B0_A_UNUSED << 1;
+  struct35A_warnings->flags[0] = i;
 
+  i = 0;
   // Byte 1 Protection/Critical 2
-  if (bms->alarm.levelTwoChargeCurrentTooHigh) {
-    i |= M359_B1_T2_CHARGE_OVERCURRENT;
-  }
-  //  if() {  // No condition currently known that should set this bit
-  //    i |= M359_B1_T2_SYSTEM_ERROR;
-  //  }
-  status_flags->protection2 = i;
+  i |= (bms->alarm.levelTwoDischargeCurrentTooHigh)  ? M35A_B1_A_DISCH_OVERCURRENT   : M35A_B1_A_DISCH_OVERCURRENT  << 1;
+  i |= (bms->alarm.levelTwoChargeTempTooLow)         ? M35A_B1_A_CHARGE_UNDERTEMP    : M35A_B1_A_CHARGE_UNDERTEMP   << 1;
+  i |= (bms->alarm.levelTwoChargeTempTooHigh)        ? M35A_B1_A_CHARGE_OVERTEMP     : M35A_B1_A_CHARGE_OVERTEMP    << 1;
+  i |= (bms->alarm.levelTwoDischargeTempTooLow)      ? M35A_B1_A_UNDERTEMP           : M35A_B1_A_UNDERTEMP          << 1;
+  struct35A_warnings->flags[1] = i;
+
   i = 0;
+  // Byte 2
+  i |= (bms->alarm.levelTwoChargeCurrentTooHigh)     ? M35A_B2_A_CHARGE_OVERCURRENT  : M35A_B2_A_CHARGE_OVERCURRENT << 1;
+  i |= M35A_B2_A_SYSTEM_ERROR << 1;
+  i |= M35A_B2_A_UNUSED << 1;
+  struct35A_warnings->flags[2] = i;
 
-
-  // Byte 2 Alarm/Warning 1
-  if (bms->alarm.levelOneDischargeCurrentTooHigh) {
-    i |= M359_B2_T3_DISCH_HIGH_CURRENT;
-  }
-  if (bms->alarm.levelOneChargeTempTooLow
-      || bms->alarm.levelOneDischargeTempTooLow ) {
-    i |= M359_B2_T3_CELL_LOW_TEMP;
-  }
-  if (bms->alarm.levelOneChargeTempTooHigh
-      || bms->alarm.levelOneDischargeTempTooHigh ) {
-    i |= M359_B2_T3_CELL_HIGH_TEMP;
-  }
-  if (bms->alarm.levelOneCellVoltageTooLow
-      || bms->alarm.levelOnePackVoltageTooLow ) {
-    //i |= M359_B2_T3_CELL_LOW_VOLT;
-  }
-  if (bms->alarm.levelOneCellVoltageTooHigh
-      || bms->alarm.levelOnePackVoltageTooHigh ) {
-    i |= M359_B2_T3_CELL_HIGH_VOLT;
-  }
-  status_flags->alarm1 = i;
   i = 0;
+  i |= (bms->alarm.levelTwoCellVoltageDifferenceTooHigh) ? M35A_B3_A_CELL_IMBAANCE   : M35A_B3_A_CELL_IMBAANCE      << 1;
+  i |= M35A_B3_A_UNUSED << 1; 
+  struct35A_warnings->flags[3] = i;
 
+  i = 0;
+  // Byte 4 Warning 1
+  i |= (bms->alarm.levelOneDischargeTempTooHigh)     ? M35A_B4_W_CELL_OVERTEMP       : M35A_B4_W_CELL_OVERTEMP      << 1;
+  i |= (bms->alarm.levelOneCellVoltageTooLow
+     || bms->alarm.levelOnePackVoltageTooLow)        ? M35A_B4_W_CELL_UNDERVOLT      : M35A_B4_W_CELL_UNDERVOLT     << 1;
+  i |= (bms->alarm.levelOneCellVoltageTooHigh
+     || bms->alarm.levelOnePackVoltageTooHigh)       ? M35A_B4_W_CELL_OVERVOLT       : M35A_B4_W_CELL_OVERVOLT      << 1;
+  i |= M35A_B4_W_UNUSED << 1;
+  struct35A_warnings->flags[4] = i;
 
-  // Byte 3 Alarm/Warning 2
-  if (bms->alarm.levelOneChargeCurrentTooHigh) {
-    i |= M359_B3_T4_CHARGE_HIGH_CURRENT;
-  }
-  //  if() {  // No condition currently known that should set this bit
-  //    i |= M359_B3_T4_INTERNAL_COMM_ERROR;
-  //  }
-  status_flags->protection2 = i;
+  i = 0;
+  // Byte 5 Warning 2
+  i |= (bms->alarm.levelOneDischargeCurrentTooHigh)  ? M35A_B5_W_DISCH_OVERCURRENT   : M35A_B5_W_DISCH_OVERCURRENT  << 1;
+  i |= (bms->alarm.levelOneChargeTempTooLow)         ? M35A_B5_W_CHARGE_UNDERTEMP    : M35A_B5_W_CHARGE_UNDERTEMP   << 1;
+  i |= (bms->alarm.levelOneChargeTempTooHigh)        ? M35A_B5_W_CHARGE_OVERTEMP     : M35A_B5_W_CHARGE_OVERTEMP    << 1;
+  i |= (bms->alarm.levelOneDischargeTempTooLow)      ? M35A_B5_W_UNDERTEMP           : M35A_B5_W_UNDERTEMP          << 1;
+  struct35A_warnings->flags[5] = i;
 
+  i = 0;
+  // Byte 6
+  i |= (bms->alarm.levelOneChargeCurrentTooHigh)     ? M35A_B6_W_CHARGE_OVERCURRENT  : M35A_B6_W_CHARGE_OVERCURRENT << 1;
+  i |= M35A_B6_W_SYSTEM_ERROR << 1;
+  i |= M35A_B6_W_UNUSED << 1;
+  struct35A_warnings->flags[6] = i;
 
-  status_flags->num_modules = 5;
-  status_flags->magic_string[0] = 'P';
-  status_flags->magic_string[1] = 'N';
-  status_flags->magic_string[2] = 0;
-
+  i = 0;
+  i |= (bms->alarm.levelOneCellVoltageDifferenceTooHigh) ? M35A_B7_W_CELL_IMBAANCE   : M35A_B7_W_CELL_IMBAANCE      << 1;
+  i |= M35A_B7_W_UNUSED << 1; 
+  struct35A_warnings->flags[7] = i;
+  
 
   // MESSAGE 355 BATTERY HEALTH
-  battery_health->soc_percent = bms->get.packSOC / 10;
-  if (battery_health->soc_percent < 11) {
-    battery_health->soc_percent = 11;
+  struct355_soc_soh->soc_percent = bms->get.packSOC / 10;
+  if (struct355_soc_soh->soc_percent < 11) {
+    struct355_soc_soh->soc_percent = 11;
   }
 
-  battery_health->soh_percent = 99; // This battery never gets old
-  battery_health->padding[0] = 0;
-  battery_health->padding[1] = 0;
-  battery_health->padding[2] = 0;
-  battery_health->padding[3] = 0;
-
-
   // MESSAGE 356 MEASUREMENTS
-  measurements->pack_centivolts = 10 * bms->get.packVoltage;
-  measurements->pack_deciamps = -bms->get.packCurrent;
-  measurements->pack_temp_dc = bms->get.tempAverage * 10;
-  measurements->padding[0] = 0;
-  measurements->padding[1] = 0;
+  struct356_major_measurements->pack_centivolts = 10 * bms->get.packVoltage;
+  struct356_major_measurements->pack_deciamps = -bms->get.packCurrent;
+  struct356_major_measurements->pack_temp_dc = bms->get.tempAverage * 10;
+  struct356_major_measurements->padding[0] = 0;
+  struct356_major_measurements->padding[1] = 0;
 
 
+  struct351_limits->charge_limit_deciamps = get_charge_limit_deciamps(bms->get.maxCellmV, bms->get.packSOC, bms->get.tempAverage, bms->get.packCurrent);
+  struct351_limits->discharge_limit_deciamps = get_discharge_limit_deciamps(bms->get.minCellmV, bms->get.packSOC, bms->get.tempAverage, bms->get.packCurrent);
+
+
+//  373-378 remain to be populated
+//  Maybe we can skip them?
+
+
+// Charge requests and FET states are not sent??
+/*
   i = 0;
   // MESSAGE 35C REQUESTS
   if (bms->get.chargeFetState) {
@@ -470,16 +464,8 @@ void can_data_update(Daly_BMS_UART *bms) {
   // We don't request force charges
   requests->flags = i;
   requests->padding = 0;
-
-  limits->charge_limit_deciamps = get_charge_limit_deciamps(bms->get.maxCellmV, bms->get.packSOC, bms->get.tempAverage, bms->get.packCurrent);
-  limits->discharge_limit_deciamps = get_discharge_limit_deciamps(bms->get.minCellmV, bms->get.packSOC, bms->get.tempAverage, bms->get.packCurrent);
-
-  limits->pack_decivolts_hi = 525;
-  limits->pack_decivolts_lo = 470;
-
-  
+ */ 
 }
-*/
 
 
 void can_data_apply_overrides() {
