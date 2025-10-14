@@ -4,9 +4,8 @@
 #include "daly-bms-uart.h"
 
 extern MCP2515 mcp2515;
-extern struct can_frame canMsg;
+extern struct can_frame can_msg_readbuf;
 
-extern uint8_t num_enters;
 uint8_t is_can_frame_received();
 void can_data_init();
 void can_data_update(Daly_BMS_UART *bms);

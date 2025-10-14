@@ -5,7 +5,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include "daly-bms-uart.h" // This is where the library gets pulled in
-#include "pylontech-can.h"
+#include "bydcan.h"
 #include "current-limits.h"
 #include "ui.h"
 #include "buttons.h"
@@ -59,7 +59,7 @@ void loop()
   // The inverter only sends keepalive messages with no data. Configured for Pylontech US5000, the inverter sends can messages 0x305, 0x306 and 0x307.
   // We simply respond after the last one.
   if (is_can_frame_received()) {
-    if (canMsg.can_id == 0x307) {
+    if (can_msg_readbuf.can_id == 0x307) {
       can_data_transmit(); // I have seen CAN messages rejected if sent spontaneously, so let's play it safe and transmit as fast as possible, at the cost of only knowing a 1-second old battery state.
       uint8_t retries = 3;
       do {
@@ -78,16 +78,14 @@ void loop()
       wdt_reset(); // reset the WDT timer
     }
 
-    /*
-        Serial.print("CAN < ");
-        Serial.print(canMsg.can_id, HEX);
-        Serial.print(": ");
-        for(int i = 0; i < canMsg.can_dlc; i++) {
-            Serial.print(canMsg.data[i], HEX);
-            Serial.print(" ");
-        }
-        Serial.print("\n");
-    */
+    Serial.print("CAN < ");
+    Serial.print(can_msg_readbuf.can_id, HEX);
+    Serial.print(": ");
+    for(int i = 0; i < can_msg_readbuf.can_dlc; i++) {
+        Serial.print(can_msg_readbuf.data[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.print("\n");
   }
 }
 
