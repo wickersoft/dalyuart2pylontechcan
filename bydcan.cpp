@@ -182,7 +182,7 @@ struct {
 #define M35A_B2_A_CHARGE_OVERCURRENT (1 << 0)
 
 #define M35A_B3_A_UNUSED (1 << 6) || (1 << 4) || (1 << 2)
-#define M35A_B3_A_CELL_IMBAANCE (1 << 0)
+#define M35A_B3_A_CELL_IMBALANCE (1 << 0)
 
 #define M35A_B4_W_CELL_OVERTEMP (1 << 6)
 #define M35A_B4_W_CELL_UNDERVOLT (1 << 4)
@@ -199,7 +199,7 @@ struct {
 #define M35A_B6_W_CHARGE_OVERCURRENT (1 << 0)
 
 #define M35A_B7_W_UNUSED (1 << 6) || (1 << 4) || (1 << 2)
-#define M35A_B7_W_CELL_IMBAANCE (1 << 0)
+#define M35A_B7_W_CELL_IMBALANCE (1 << 0)
 
 
 #define M35C_B0_T5_CHARGE_ENABLE (1 << 7)
@@ -367,65 +367,60 @@ void can_data_init() {
 void can_data_update(Daly_BMS_UART *bms) {
   uint8_t i = 0;
 
-  // MESSAGE 359 STATUS FLAGS
-
+  //BYD encodes alarm flags in two bits: 01 is true, 10 is false. All alarms cleared reads as 0xAA
   // Byte 0 Protection/Critical 1
-  i |= (bms->alarm.levelTwoDischargeTempTooHigh)     ? M35A_B0_A_CELL_OVERTEMP       : M35A_B0_A_CELL_OVERTEMP      << 1;
-  i |= (bms->alarm.levelTwoCellVoltageTooLow
-     || bms->alarm.levelTwoPackVoltageTooLow)        ? M35A_B0_A_CELL_UNDERVOLT      : M35A_B0_A_CELL_UNDERVOLT     << 1;
-  i |= (bms->alarm.levelTwoCellVoltageTooHigh
-     || bms->alarm.levelTwoPackVoltageTooHigh)       ? M35A_B0_A_CELL_OVERVOLT       : M35A_B0_A_CELL_OVERVOLT      << 1;
-  i |= M35A_B0_A_UNUSED << 1;
+  i |= M35A_B0_A_CELL_OVERTEMP      << !(bms->alarm.levelTwoDischargeTempTooHigh); 
+  i |= M35A_B0_A_CELL_UNDERVOLT     << !(bms->alarm.levelTwoCellVoltageTooLow || bms->alarm.levelTwoPackVoltageTooLow);
+  i |= M35A_B0_A_CELL_OVERVOLT      << !(bms->alarm.levelTwoCellVoltageTooHigh || bms->alarm.levelTwoPackVoltageTooHigh);
+  i |= M35A_B0_A_UNUSED             << 1;
   struct35A_warnings->flags[0] = i;
 
   i = 0;
   // Byte 1 Protection/Critical 2
-  i |= (bms->alarm.levelTwoDischargeCurrentTooHigh)  ? M35A_B1_A_DISCH_OVERCURRENT   : M35A_B1_A_DISCH_OVERCURRENT  << 1;
-  i |= (bms->alarm.levelTwoChargeTempTooLow)         ? M35A_B1_A_CHARGE_UNDERTEMP    : M35A_B1_A_CHARGE_UNDERTEMP   << 1;
-  i |= (bms->alarm.levelTwoChargeTempTooHigh)        ? M35A_B1_A_CHARGE_OVERTEMP     : M35A_B1_A_CHARGE_OVERTEMP    << 1;
-  i |= (bms->alarm.levelTwoDischargeTempTooLow)      ? M35A_B1_A_UNDERTEMP           : M35A_B1_A_UNDERTEMP          << 1;
+  i |= M35A_B1_A_DISCH_OVERCURRENT  << !(bms->alarm.levelTwoDischargeCurrentTooHigh);
+  i |= M35A_B1_A_CHARGE_UNDERTEMP   << !(bms->alarm.levelTwoChargeTempTooLow);
+  i |= M35A_B1_A_CHARGE_OVERTEMP    << !(bms->alarm.levelTwoChargeTempTooHigh);
+  i |= M35A_B1_A_UNDERTEMP          << !(bms->alarm.levelTwoDischargeTempTooLow);
   struct35A_warnings->flags[1] = i;
 
   i = 0;
   // Byte 2
-  i |= (bms->alarm.levelTwoChargeCurrentTooHigh)     ? M35A_B2_A_CHARGE_OVERCURRENT  : M35A_B2_A_CHARGE_OVERCURRENT << 1;
-  i |= M35A_B2_A_SYSTEM_ERROR << 1;
-  i |= M35A_B2_A_UNUSED << 1;
+  i |= M35A_B2_A_CHARGE_OVERCURRENT << !(bms->alarm.levelTwoChargeCurrentTooHigh);
+  i |= M35A_B2_A_SYSTEM_ERROR       << 1;
+  i |= M35A_B2_A_UNUSED             << 1;
   struct35A_warnings->flags[2] = i;
 
   i = 0;
-  i |= (bms->alarm.levelTwoCellVoltageDifferenceTooHigh) ? M35A_B3_A_CELL_IMBAANCE   : M35A_B3_A_CELL_IMBAANCE      << 1;
-  i |= M35A_B3_A_UNUSED << 1; 
+  i |= M35A_B3_A_CELL_IMBALANCE     << !(bms->alarm.levelTwoCellVoltageDifferenceTooHigh);
+  i |= M35A_B3_A_UNUSED             << 1; 
   struct35A_warnings->flags[3] = i;
 
   i = 0;
   // Byte 4 Warning 1
-  i |= (bms->alarm.levelOneDischargeTempTooHigh)     ? M35A_B4_W_CELL_OVERTEMP       : M35A_B4_W_CELL_OVERTEMP      << 1;
-  i |= (bms->alarm.levelOneCellVoltageTooLow
-     || bms->alarm.levelOnePackVoltageTooLow)        ? M35A_B4_W_CELL_UNDERVOLT      : M35A_B4_W_CELL_UNDERVOLT     << 1;
-  i |= (bms->alarm.levelOneCellVoltageTooHigh
-     || bms->alarm.levelOnePackVoltageTooHigh)       ? M35A_B4_W_CELL_OVERVOLT       : M35A_B4_W_CELL_OVERVOLT      << 1;
-  i |= M35A_B4_W_UNUSED << 1;
+  i |= M35A_B4_W_CELL_OVERTEMP      << !(bms->alarm.levelOneDischargeTempTooHigh);
+  i |= M35A_B4_W_CELL_UNDERVOLT     << !(bms->alarm.levelOneCellVoltageTooLow || bms->alarm.levelOnePackVoltageTooLow);
+  i |= M35A_B4_W_CELL_OVERVOLT      << !(bms->alarm.levelOneCellVoltageTooHigh || bms->alarm.levelOnePackVoltageTooHigh);
+  i |= M35A_B4_W_UNUSED             << 1;
   struct35A_warnings->flags[4] = i;
 
   i = 0;
   // Byte 5 Warning 2
-  i |= (bms->alarm.levelOneDischargeCurrentTooHigh)  ? M35A_B5_W_DISCH_OVERCURRENT   : M35A_B5_W_DISCH_OVERCURRENT  << 1;
-  i |= (bms->alarm.levelOneChargeTempTooLow)         ? M35A_B5_W_CHARGE_UNDERTEMP    : M35A_B5_W_CHARGE_UNDERTEMP   << 1;
-  i |= (bms->alarm.levelOneChargeTempTooHigh)        ? M35A_B5_W_CHARGE_OVERTEMP     : M35A_B5_W_CHARGE_OVERTEMP    << 1;
-  i |= (bms->alarm.levelOneDischargeTempTooLow)      ? M35A_B5_W_UNDERTEMP           : M35A_B5_W_UNDERTEMP          << 1;
+  i |= M35A_B5_W_DISCH_OVERCURRENT  << !(bms->alarm.levelOneDischargeCurrentTooHigh);
+  i |= M35A_B5_W_CHARGE_UNDERTEMP   << !(bms->alarm.levelOneChargeTempTooLow);
+  i |= M35A_B5_W_CHARGE_OVERTEMP    << !(bms->alarm.levelOneChargeTempTooHigh);
+  i |= M35A_B5_W_UNDERTEMP          << !(bms->alarm.levelOneDischargeTempTooLow);
   struct35A_warnings->flags[5] = i;
 
   i = 0;
   // Byte 6
-  i |= (bms->alarm.levelOneChargeCurrentTooHigh)     ? M35A_B6_W_CHARGE_OVERCURRENT  : M35A_B6_W_CHARGE_OVERCURRENT << 1;
-  i |= M35A_B6_W_SYSTEM_ERROR << 1;
-  i |= M35A_B6_W_UNUSED << 1;
+  i |= M35A_B6_W_CHARGE_OVERCURRENT << !(bms->alarm.levelOneChargeCurrentTooHigh);
+  i |= M35A_B6_W_SYSTEM_ERROR       << 1;
+  i |= M35A_B6_W_UNUSED             << 1;
   struct35A_warnings->flags[6] = i;
 
   i = 0;
-  i |= (bms->alarm.levelOneCellVoltageDifferenceTooHigh) ? M35A_B7_W_CELL_IMBAANCE   : M35A_B7_W_CELL_IMBAANCE      << 1;
-  i |= M35A_B7_W_UNUSED << 1; 
+  i |= M35A_B7_W_CELL_IMBALANCE      << !(bms->alarm.levelOneCellVoltageDifferenceTooHigh);
+  i |= M35A_B7_W_UNUSED             << 1; 
   struct35A_warnings->flags[7] = i;
   
 
@@ -491,7 +486,7 @@ void can_debug(can_frame *fr) {
   Serial.print("\n");
 }
 
-void *can_message_transmit_sequence[17] =  {
+struct can_frame *can_message_transmit_sequence[17] =  {
   &bytes35E_manuf_info,
   &bytes382_product_info,
   &bytes35F_battery_info,
@@ -514,8 +509,8 @@ const uint8_t num_canbus_elements = sizeof(can_message_transmit_sequence) / size
 
 void can_data_transmit() {
   for(int i = 0; i < num_canbus_elements; i++) {
-    mcp2515.sendMessage((struct can_frame*) can_message_transmit_sequence[i]);
-    //can_debug(&canMsg35C);
+    mcp2515.sendMessage(can_message_transmit_sequence + i);
+    can_debug(can_message_transmit_sequence + i);
     //Serial.println("");
   }
   //Serial.println("Messages sent");
