@@ -367,6 +367,16 @@ void can_data_init() {
 void can_data_update(Daly_BMS_UART *bms) {
   uint8_t i = 0;
 
+  // MESSAGE 35E MANUFACTURER INFO
+  // constant
+
+  // MESSAGE 382 PRODUCT INFO
+  // constant
+  
+  // MESSAGE 35F BATTERY VERSION
+  // constant
+
+  // MESSAGE 35A WARNINGS
   //BYD encodes alarm flags in two bits: 01 is true, 10 is false. All alarms cleared reads as 0xAA
   // Byte 0 Protection/Critical 1
   i |= M35A_B0_A_CELL_OVERTEMP      << !(bms->alarm.levelTwoDischargeTempTooHigh); 
@@ -422,29 +432,57 @@ void can_data_update(Daly_BMS_UART *bms) {
   i |= M35A_B7_W_CELL_IMBALANCE      << !(bms->alarm.levelOneCellVoltageDifferenceTooHigh);
   i |= M35A_B7_W_UNUSED             << 1; 
   struct35A_warnings->flags[7] = i;
-  
 
-  // MESSAGE 355 BATTERY HEALTH
+  // MESSAGE 35B EVENTS UNUSED
+  // constant
+
+  // MESSAGE 351 LIMITS
+  struct351_limits->charge_limit_deciamps = get_charge_limit_deciamps(bms->get.maxCellmV, bms->get.packSOC, bms->get.tempAverage, bms->get.packCurrent);
+  struct351_limits->discharge_limit_deciamps = get_discharge_limit_deciamps(bms->get.minCellmV, bms->get.packSOC, bms->get.tempAverage, bms->get.packCurrent);
+
+
+  // MESSAGE 355 SOC / SOH
   struct355_soc_soh->soc_percent = bms->get.packSOC / 10;
   if (struct355_soc_soh->soc_percent < 11) {
     struct355_soc_soh->soc_percent = 11;
   }
 
-  // MESSAGE 356 MEASUREMENTS
+  // MESSAGE 356 MAJOR MEASUREMENTS
   struct356_major_measurements->pack_centivolts = 10 * bms->get.packVoltage;
   struct356_major_measurements->pack_deciamps = -bms->get.packCurrent;
   struct356_major_measurements->pack_temp_dc = bms->get.tempAverage * 10;
   struct356_major_measurements->padding[0] = 0;
   struct356_major_measurements->padding[1] = 0;
 
+  // MESSAGE 360 UNKNOWN 0
+  // constant
 
-  struct351_limits->charge_limit_deciamps = get_charge_limit_deciamps(bms->get.maxCellmV, bms->get.packSOC, bms->get.tempAverage, bms->get.packCurrent);
-  struct351_limits->discharge_limit_deciamps = get_discharge_limit_deciamps(bms->get.minCellmV, bms->get.packSOC, bms->get.tempAverage, bms->get.packCurrent);
+  // MESSAGE 372 BANK INFO
+  // constant
 
+  // MESSAGE 373 CELL INFO
+  struct373_cell_info->lowest_cell_mv = bms->get.minCellmV;
+  struct373_cell_info->highest_cell_mv = bms->get.maxCellmV;
+  struct373_cell_info->lowest_cell_temp_k = bms->get.tempMin + 273;
+  struct373_cell_info->lowest_cell_temp_k = bms->get.tempMax + 273;
+  
+  // MESSAGE 374 CELL WITH LOWEST VOLTAGE
+  // ignored
+  
+  // MESSAGE 374 CELL WITH HIGHEST VOLTAGE
+  // ignored
+  
+  // MESSAGE 374 CELL WITH LOWEST TEMPERATURE
+  // ignored
+  
+  // MESSAGE 374 CELL WITH HIGHEST TEMPERATURE
+  // ignored
 
-//  373-378 remain to be populated
-//  Maybe we can skip them?
+  // MESSAGE 378 HISTORY
+  // 
 
+  // MESSAGE 379 BATTERY SIZE
+  // constant
 
 // Charge requests and FET states are not sent??
 /*
@@ -509,8 +547,8 @@ const uint8_t num_canbus_elements = sizeof(can_message_transmit_sequence) / size
 
 void can_data_transmit() {
   for(int i = 0; i < num_canbus_elements; i++) {
-    mcp2515.sendMessage(can_message_transmit_sequence + i);
-    can_debug(can_message_transmit_sequence + i);
+    mcp2515.sendMessage(can_message_transmit_sequence[i]);
+    can_debug(can_message_transmit_sequence[i]);
     //Serial.println("");
   }
   //Serial.println("Messages sent");
