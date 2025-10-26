@@ -72,7 +72,7 @@ struct can_frame bytes378_history {
    .can_dlc = 8,
 };
 struct can_frame bytes379_battery_size {
-  .can_id = 0x356,
+  .can_id = 0x379,
    .can_dlc = 8,
 };
 
@@ -250,7 +250,7 @@ void can_data_init() {
   struct382_product_info->product_string[7] = 0;
   
   struct35F_battery_info->product_code[0] = 'L';
-  struct35F_battery_info->product_code[0] = 'i';
+  struct35F_battery_info->product_code[1] = 'i';
   struct35F_battery_info->fw_version = 0x1701; // 01 17 = v01->17
   struct35F_battery_info->ah_available = 100;
   struct35F_battery_info->padding[0] = 0;
