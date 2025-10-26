@@ -524,24 +524,24 @@ void can_debug(can_frame *fr) {
   Serial.print("\n");
 }
 
-struct can_frame *can_message_transmit_sequence[17] =  {
-  &bytes35E_manuf_info,
-  &bytes382_product_info,
-  &bytes35F_battery_info,
-  &bytes35A_warnings,
-  &bytes35B_events_unused,
+struct can_frame *can_message_transmit_sequence[7] =  {
+  //&bytes382_product_info,
   &bytes351_limits,
   &bytes355_soc_soh,
   &bytes356_major_measurements,
-  &bytes360_unknown0,
-  &bytes372_bank_info,
-  &bytes373_cell_info,
-  &bytes374_cell_volt_min_id,
-  &bytes375_cell_volt_max_id,
-  &bytes376_cell_temp_min_id,
-  &bytes377_cell_temp_max_id,
-  &bytes378_history,
-  &bytes379_battery_size
+  &bytes35A_warnings,
+  &bytes35B_events_unused,
+  &bytes35E_manuf_info,
+  &bytes35F_battery_info,
+  //&bytes360_unknown0,
+  //&bytes372_bank_info,
+  //&bytes373_cell_info,
+  //&bytes374_cell_volt_min_id,
+  //&bytes375_cell_volt_max_id,
+  //&bytes376_cell_temp_min_id,
+  //&bytes377_cell_temp_max_id,
+  //&bytes378_history,
+  //&bytes379_battery_size
 };
 const uint8_t num_canbus_elements = sizeof(can_message_transmit_sequence) / sizeof(void*);
 
