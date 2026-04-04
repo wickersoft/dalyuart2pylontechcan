@@ -70,6 +70,8 @@ void loop()
       } while ((bms_offline_indicator || bms.get.packSOC > 1000 || bms.get.packSOC < 0) && --retries); // Reject any implausible updates, this will go away when we have a hardware serial for the BMS
       if(retries) {
         can_data_update(&bms);
+        bms.get.packCurrent *= 2;
+        bms.get.resCapacitymAh *= 2;
       }
       buttons_update();
       can_data_apply_overrides();
