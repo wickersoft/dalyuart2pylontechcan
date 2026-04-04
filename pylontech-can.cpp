@@ -251,7 +251,7 @@ void can_data_update(Daly_BMS_UART *bms) {
   status_flags->protection2 = i;
 
 
-  status_flags->num_modules = 16;
+  status_flags->num_modules = 5;
   status_flags->magic_string[0] = 'P';
   status_flags->magic_string[1] = 'N';
   status_flags->magic_string[2] = 0;
