@@ -70,8 +70,6 @@ void loop()
       } while ((bms_offline_indicator || bms.get.packSOC > 1000 || bms.get.packSOC < 0) && --retries); // Reject any implausible updates, this will go away when we have a hardware serial for the BMS
       if(retries) {
         can_data_update(&bms);
-        bms.get.packCurrent *= 2;
-        bms.get.resCapacitymAh *= 2;
       }
       buttons_update();
       can_data_apply_overrides();
@@ -150,7 +148,7 @@ void print_battery_state_serial() {
   if (abs(bms.get.packCurrent) < 100) {
     Serial.print(" ");
   }
-  Serial.print(0.1 * bms.get.packCurrent);
+  Serial.print(0.2 * bms.get.packCurrent);
   Serial.println("A|");
 
   Serial.print(F("|       "));
@@ -160,7 +158,7 @@ void print_battery_state_serial() {
   if (bms.get.resCapacitymAh < 10000) {
     Serial.print(" ");
   }
-  Serial.print(bms.get.resCapacitymAh * 0.001);
+  Serial.print(bms.get.resCapacitymAh * 0.002);
   Serial.print("Ah");
   if (bms_offline_indicator) {
     Serial.print(" OFFLINE");
@@ -185,18 +183,18 @@ void print_battery_state_serial() {
   Serial.println("°C|");
 
   Serial.print("|");
-  if (bms.get.minCellVNum - 1 < 10) {
+  if (bms.get.minCellVNum < 10) {
     Serial.print("  ");
   } else {
     Serial.print(" ");
   }
-  Serial.print(bms.get.minCellVNum - 1);
+  Serial.print(bms.get.minCellVNum);
   Serial.print("^  ");
 
-  if (bms.get.maxCellVNum - 1 < 10) {
+  if (bms.get.maxCellVNum < 10) {
     Serial.print(" ");
   }
-  Serial.print(bms.get.maxCellVNum - 1);
+  Serial.print(bms.get.maxCellVNum);
   Serial.print("^   L:  ");
 
 
@@ -263,12 +261,12 @@ void print_battery_state_serial() {
 
   for (uint8_t i = 0; i < 15; i++)
   {
-    if (i < 10) {
+    if (i < 9) {
       Serial.print("  ");
     } else {
       Serial.print(" ");
     }
-    Serial.print(i);
+    Serial.print(i + 1);
     if (bms.get.cellBalanceState[i]) {
       Serial.print(":#");
     } else {

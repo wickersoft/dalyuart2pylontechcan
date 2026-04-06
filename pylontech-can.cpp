@@ -181,6 +181,8 @@ void can_data_init() {
 
 void can_data_update(Daly_BMS_UART *bms) {
   uint8_t i = 0;
+  int16_t pack_current = 2 * bms->get.packCurrent;
+  
 
   // MESSAGE 359 STATUS FLAGS
   // Byte 0 Protection/Critical 1
@@ -272,7 +274,7 @@ void can_data_update(Daly_BMS_UART *bms) {
 
   // MESSAGE 356 MEASUREMENTS
   measurements->pack_centivolts = 10 * bms->get.packVoltage;
-  measurements->pack_deciamps = -bms->get.packCurrent;
+  measurements->pack_deciamps = -pack_current;
   measurements->pack_temp_dc = bms->get.tempAverage * 10;
   measurements->padding[0] = 0;
   measurements->padding[1] = 0;
@@ -290,8 +292,8 @@ void can_data_update(Daly_BMS_UART *bms) {
   requests->flags = i;
   requests->padding = 0;
 
-  limits->charge_limit_deciamps = get_charge_limit_deciamps(bms->get.maxCellmV, bms->get.packSOC, bms->get.tempAverage, bms->get.packCurrent);
-  limits->discharge_limit_deciamps = get_discharge_limit_deciamps(bms->get.minCellmV, bms->get.packSOC, bms->get.tempAverage, bms->get.packCurrent);
+  limits->charge_limit_deciamps = get_charge_limit_deciamps(bms->get.maxCellmV, bms->get.packSOC, bms->get.tempAverage, pack_current);
+  limits->discharge_limit_deciamps = get_discharge_limit_deciamps(bms->get.minCellmV, bms->get.packSOC, bms->get.tempAverage, pack_current);
 
   limits->pack_decivolts_hi = 525;
   limits->pack_decivolts_lo = 470;

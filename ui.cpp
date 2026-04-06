@@ -144,9 +144,9 @@ void print_battery_state_lcd() {
   lcd.print("V ");
 
   //lcd.setCursor(0, 0);         // move cursor to   (0, 0)
-  print_int_right_adjusted(bms.get.packCurrent / 10, 4, 1);
+  print_int_right_adjusted(bms.get.packCurrent / 5, 4, 1);
   lcd.print(".");
-  lcd.print(((bms.get.packCurrent % 10) + 10) % 10);
+  lcd.print((((bms.get.packCurrent * 2) % 10) + 10) % 10);
   lcd.print("A");
 
   lcd.setCursor(0, 1);         // move cursor to   (0, 0)
@@ -177,9 +177,9 @@ void print_battery_state_lcd() {
   lcd.print((char) 0x04);
 
   lcd.setCursor(0, 3);         // move cursor to   (0, 0)
-  print_int_right_adjusted(bms.get.minCellVNum - 1, 3, 0);
+  print_int_right_adjusted(bms.get.minCellVNum, 3, 0);
   lcd.print("^ ");
-  print_int_right_adjusted(bms.get.maxCellVNum - 1, 3, 0);
+  print_int_right_adjusted(bms.get.maxCellVNum, 3, 0);
   lcd.print("^  L");
 
   uint16_t chg_amps = get_charge_limit_deciamps(bms.get.maxCellmV, bms.get.packSOC, bms.get.tempAverage, bms.get.packCurrent) / 10;
